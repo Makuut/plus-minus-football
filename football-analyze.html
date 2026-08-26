@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ТТД — статистика по периодам</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: #fafafa;
+            margin: 0;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            color: #111;
+            letter-spacing: -0.3px;
+        }
+        .header .status {
+            font-size: 13px;
+            color: #22a65a;
+            background: #eaf9ed;
+            padding: 2px 14px;
+            border-radius: 20px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e5e5;
+            align-items: center;
+        }
+        .controls input {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            background: #fff;
+            min-width: 120px;
+        }
+        .controls input:focus {
+            outline: none;
+            border-color: #888;
+        }
+        .controls .sep {
+            color: #ccc;
+            font-size: 18px;
+            font-weight: 300;
+            padding: 0 2px;
+        }
+        .btn {
+            border: none;
+            border-radius: 4px;
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            background: #eee;
+            color: #222;
+            transition: background 0.15s;
+        }
+        .btn:hover {
+            background: #ddd;
+        }
+        .btn-add {
+            background: #222;
+            color: #fff;
+        }
+        .btn-add:hover {
+            background: #000;
+        }
+        .btn-danger {
+            background: #f5f5f5;
+            color: #b33;
+        }
+        .btn-danger:hover {
+            background: #f0e0e0;
+        }
+
+        .period-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin: 12px 0 16px;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .period-bar .label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-right: 8px;
+        }
+        .period-tab {
+            font-size: 13px;
+            padding: 4px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #555;
+            transition: all 0.15s;
+            border: 1px solid transparent;
+        }
+        .period-tab:hover {
+            background: #e5e5e5;
+        }
+        .period-tab.active {
+            background: #222;
+            color: #fff;
+        }
+        .period-tab .del {
+            margin-left: 6px;
+            opacity: 0.4;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .period-tab .del:hover {
+            opacity: 1;
+        }
+        .period-bar .active-label {
+            font-size: 13px;
+            color: #888;
+            margin-left: 12px;
+        }
+        .period-bar .active-label strong {
+            color: #222;
+        }
+
+        .team-block {
+            margin-bottom: 28px;
+        }
+        .team-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111;
+            padding: 6px 0 8px;
+            border-bottom: 2px solid #222;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+        }
+        .team-title .sub {
+            font-weight: 400;
+            font-size: 13px;
+            color: #888;
+        }
+        .team-title .period-badge {
+            font-weight: 400;
+            font-size: 13px;
+            color: #888;
+        }
+        .team-title .period-badge strong {
+            color: #222;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th {
+            text-align: center;
+            font-weight: 700;
+            font-size: 13px;
+            color: #111;
+            padding: 8px 4px 10px;
+            border-bottom: 1px solid #e5e5e5;
+            letter-spacing: 0.2px;
+            transition: background 0.15s;
+        }
+        th .del-cat {
+            display: block;
+            font-size: 11px;
+            color: #ccc;
+            cursor: pointer;
+            font-weight: 400;
+            letter-spacing: 0;
+            margin-top: 2px;
+        }
+        th .del-cat:hover {
+            color: #b33;
+        }
+        td {
+            padding: 4px 2px;
+            text-align: center;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+            transition: background 0.15s;
+        }
+        .player-cell {
+            text-align: left;
+            padding-left: 4px;
+            font-weight: 700;
+            white-space: nowrap;
+            min-width: 100px;
+        }
+        .player-cell .player-name {
+            font-weight: 700;
+        }
+        .player-cell .del-player {
+            margin-left: 8px;
+            font-size: 13px;
+            color: #ccc;
+            cursor: pointer;
+            font-weight: 400;
+        }
+        .player-cell .del-player:hover {
+            color: #b33;
+        }
+
+        /* Подсветка строк и столбцов */
+        .hover-row {
+            background: #f0f7ff !important;
+        }
+        .hover-col {
+            background: #f0f7ff !important;
+        }
+        .hover-cell {
+            background: #dbeafe !important;
+        }
+        .team-total-row.hover-row td {
+            background: #f0f7ff !important;
+        }
+        .team-total-row td.hover-col {
+            background: #f0f7ff !important;
+        }
+        .team-total-row td.hover-cell {
+            background: #dbeafe !important;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 3px;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn-act {
+            border: none;
+            border-radius: 3px;
+            padding: 4px 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #333;
+            transition: background 0.12s;
+            min-width: 34px;
+        }
+        .btn-act:hover {
+            background: #e0e0e0;
+        }
+        .btn-act.plus {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .btn-act.plus:hover {
+            background: #c8e6c9;
+        }
+        .btn-act.minus {
+            background: #fce4ec;
+            color: #c62828;
+        }
+        .btn-act.minus:hover {
+            background: #f8bbd0;
+        }
+
+        /* Кнопка "три точки" */
+        .btn-more {
+            border: none;
+            border-radius: 3px;
+            padding: 4px 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: #999;
+            transition: all 0.15s;
+            min-width: 28px;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+        .btn-more:hover {
+            background: #e8e8e8;
+            color: #333;
+        }
+        .btn-more:active {
+            transform: scale(0.9);
+        }
+
+        /* Выпадающее меню */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 180px;
+            padding: 6px 0;
+            z-index: 100;
+            display: none;
+            border: 1px solid #eee;
+        }
+        .dropdown-menu.active {
+            display: block;
+        }
+        .dropdown-menu .menu-item {
+            display: block;
+            width: 100%;
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            text-align: left;
+            font-size: 13px;
+            color: #333;
+            cursor: pointer;
+            transition: background 0.1s;
+            font-family: inherit;
+        }
+        .dropdown-menu .menu-item:hover {
+            background: #f5f5f5;
+        }
+        .dropdown-menu .menu-item.danger {
+            color: #c62828;
+        }
+        .dropdown-menu .menu-item.danger:hover {
+            background: #fce4ec;
+        }
+        .dropdown-menu .menu-divider {
+            height: 1px;
+            background: #eee;
+            margin: 4px 12px;
+        }
+        .dropdown-menu .menu-info {
+            padding: 6px 16px;
+            font-size: 11px;
+            color: #999;
+            white-space: nowrap;
+        }
+
+        .stat-badge {
+            font-size: 11px;
+            color: #888;
+            background: #f5f5f5;
+            padding: 1px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-top: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-badge .plus-count {
+            color: #888;
+        }
+        .stat-badge .minus-count {
+            color: #888;
+        }
+        .stat-badge .sep {
+            color: #ccc;
+            margin: 0 1px;
+        }
+
+        .total-cell {
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .total-cell .good {
+            color: #2e7d32;
+        }
+        .total-cell .bad {
+            color: #c62828;
+        }
+
+        .team-total-row td {
+            border-top: 2px solid #222;
+            border-bottom: none;
+            padding: 6px 4px;
+            font-weight: 500;
+            font-size: 13px;
+            color: #333;
+            background: #fafafa;
+        }
+        .team-total-row .label {
+            text-align: right;
+            padding-right: 16px;
+            color: #888;
+            font-weight: 400;
+        }
+        .team-total-row .team-total-stat {
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .team-total-row .team-total-stat .good {
+            color: #2e7d32;
+        }
+        .team-total-row .team-total-stat .bad {
+            color: #c62828;
+        }
+
+        .empty {
+            color: #bbb;
+            text-align: center;
+            padding: 40px 0;
+            font-size: 15px;
+        }
+
+        .footer {
+            margin-top: 24px;
+            padding-top: 14px;
+            border-top: 1px solid #e5e5e5;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .footer .info {
+            font-size: 13px;
+            color: #888;
+        }
+        .footer .info strong {
+            color: #222;
+        }
+
+        .confirm-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .confirm-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .confirm-box {
+            background: #fff;
+            padding: 28px 32px;
+            border-radius: 12px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+        }
+        .confirm-box h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #111;
+        }
+        .confirm-box p {
+            margin: 8px 0 20px 0;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+        }
+        .confirm-box .highlight {
+            font-weight: 700;
+            color: #111;
+            background: #f0f0f0;
+            padding: 2px 10px;
+            border-radius: 4px;
+        }
+        .confirm-box .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .confirm-box .btn-row .btn {
+            padding: 8px 24px;
+        }
+        .confirm-box .btn-row .btn-cancel {
+            background: #eee;
+            color: #333;
+        }
+        .confirm-box .btn-row .btn-cancel:hover {
+            background: #ddd;
+        }
+        .confirm-box .btn-row .btn-confirm {
+            background: #b33;
+            color: #fff;
+        }
+        .confirm-box .btn-row .btn-confirm:hover {
+            background: #922;
+        }
+        .confirm-box .btn-row .btn-confirm-green {
+            background: #2e7d32;
+            color: #fff;
+        }
+        .confirm-box .btn-row .btn-confirm-green:hover {
+            background: #1b5e20;
+        }
+
+        @media (max-width: 700px) {
+            body { padding: 12px; }
+            .controls input { min-width: 80px; font-size: 12px; }
+            .btn { font-size: 12px; padding: 4px 12px; }
+            .btn-act { padding: 3px 7px; font-size: 12px; min-width: 28px; }
+            .btn-more { padding: 2px 4px; font-size: 12px; min-width: 24px; }
+            th { font-size: 11px; }
+            td { font-size: 12px; }
+            .player-cell { min-width: 70px; font-size: 13px; }
+            .stat-badge { font-size: 10px; padding: 1px 5px; }
+            .container { padding: 0; }
+            .confirm-box { padding: 20px; }
+            .dropdown-menu { min-width: 150px; right: -10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>ТТД</h1>
+        <div>
+            <span class="status" id="saveStatus">сохранено</span>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="playerNameInput" placeholder="Игрок">
+        <input type="text" id="teamNameInput" placeholder="Команда" style="min-width:100px;">
+        <button class="btn btn-add" onclick="addPlayer()">+ игрок</button>
+
+        <span class="sep">|</span>
+
+        <input type="text" id="categoryNameInput" placeholder="Показатель" style="min-width:100px;">
+        <button class="btn btn-add" onclick="addCategory()">+ показатель</button>
+
+        <span class="sep">|</span>
+
+        <input type="text" id="periodNameInput" placeholder="Период" style="min-width:90px;">
+        <button class="btn" onclick="addPeriod()">+ период</button>
+
+        <button class="btn btn-danger" onclick="resetAll()" style="margin-left:auto;">сброс</button>
+    </div>
+
+    <div class="period-bar" id="periodBar">
+        <span class="label">Период</span>
+        <div id="periodTabs" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+        <span class="active-label" id="activePeriodLabel">активный: <strong id="activePeriodName">—</strong></span>
+    </div>
+
+    <div id="teamsContainer"></div>
+
+    <div class="footer">
+        <div class="info">всего действий: <strong id="totalActions">0</strong></div>
+        <button class="btn" onclick="exportData()">csv</button>
+    </div>
+
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <h3 id="confirmTitle">⚠️ Подтверждение</h3>
+        <p id="confirmMessage">Вы уверены?</p>
+        <div class="btn-row">
+            <button class="btn btn-cancel" onclick="closeConfirm()">Отмена</button>
+            <button class="btn btn-confirm" id="confirmDeleteBtn">Удалить</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const STORAGE_KEY = 'ttd_minimal_data';
+
+    const PLAYER_COLORS = [
+        '#e74c3c', '#2980b9', '#27ae60', '#f39c12', '#8e44ad',
+        '#1abc9c', '#e67e22', '#2c3e50', '#e84393', '#00b894',
+        '#6c5ce7', '#fdcb6e', '#d63031', '#0984e3', '#00cec9'
+    ];
+
+    let data = {
+        players: {},
+        categories: [],
+        periods: [],
+        activePeriod: null,
+        nextPlayerId: 1,
+        colorIndex: 0
+    };
+
+    let pendingAction = null;
+    let activeDropdown = null;
+
+    function openConfirm(title, message, confirmText, action) {
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').innerHTML = message;
+        const btn = document.getElementById('confirmDeleteBtn');
+        btn.textContent = confirmText || 'Удалить';
+        if (action.type === 'clearAllActions' || action.type === 'removeLastPlus' || action.type === 'removeLastMinus') {
+            btn.className = 'btn btn-confirm-green';
+        } else {
+            btn.className = 'btn btn-confirm';
+        }
+        document.getElementById('confirmOverlay').classList.add('active');
+        pendingAction = action;
+    }
+
+    function closeConfirm() {
+        document.getElementById('confirmOverlay').classList.remove('active');
+        pendingAction = null;
+    }
+
+    document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+        if (!pendingAction) return;
+        switch (pendingAction.type) {
+            case 'deletePlayer':
+                delete data.players[pendingAction.id];
+                break;
+            case 'deleteCategory':
+                const key = pendingAction.key;
+                data.categories = data.categories.filter(c => c.key !== key);
+                for (const id in data.players) {
+                    data.periods.forEach(p => { delete data.players[id].stats[p.key][key]; });
+                }
+                break;
+            case 'deletePeriod':
+                const pKey = pendingAction.key;
+                data.periods = data.periods.filter(x => x.key !== pKey);
+                for (const id in data.players) delete data.players[id].stats[pKey];
+                if (data.activePeriod === pKey) data.activePeriod = data.periods[0]?.key || null;
+                break;
+            case 'clearAllActions':
+                const pid = pendingAction.playerId;
+                const pk = pendingAction.periodKey;
+                const ck = pendingAction.categoryKey;
+                if (data.players[pid] && data.players[pid].stats[pk]) {
+                    data.players[pid].stats[pk][ck] = '';
+                }
+                break;
+            case 'removeLastPlus':
+                const pid3 = pendingAction.playerId;
+                const pk3 = pendingAction.periodKey;
+                const ck3 = pendingAction.categoryKey;
+                if (data.players[pid3] && data.players[pid3].stats[pk3]) {
+                    let current = data.players[pid3].stats[pk3][ck3] || '';
+                    const lastPlus = current.lastIndexOf('+');
+                    if (lastPlus !== -1) {
+                        current = current.slice(0, lastPlus) + current.slice(lastPlus + 1);
+                        data.players[pid3].stats[pk3][ck3] = current;
+                    }
+                }
+                break;
+            case 'removeLastMinus':
+                const pid4 = pendingAction.playerId;
+                const pk4 = pendingAction.periodKey;
+                const ck4 = pendingAction.categoryKey;
+                if (data.players[pid4] && data.players[pid4].stats[pk4]) {
+                    let current = data.players[pid4].stats[pk4][ck4] || '';
+                    const lastMinus = current.lastIndexOf('-');
+                    if (lastMinus !== -1) {
+                        current = current.slice(0, lastMinus) + current.slice(lastMinus + 1);
+                        data.players[pid4].stats[pk4][ck4] = current;
+                    }
+                }
+                break;
+        }
+        closeConfirm();
+        renderAll();
+        autoSave();
+    });
+
+    document.getElementById('confirmOverlay').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('confirmOverlay')) closeConfirm();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeConfirm();
+            closeAllDropdowns();
+        }
+    });
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.dropdown')) {
+            closeAllDropdowns();
+        }
+    });
+
+    function closeAllDropdowns() {
+        document.querySelectorAll('.dropdown-menu.active').forEach(el => {
+            el.classList.remove('active');
+        });
+        activeDropdown = null;
+    }
+
+    function toggleDropdown(dropdownId, event) {
+        event.stopPropagation();
+        const menu = document.getElementById(dropdownId);
+        if (!menu) return;
+
+        closeAllDropdowns();
+        menu.classList.toggle('active');
+        if (menu.classList.contains('active')) {
+            activeDropdown = dropdownId;
+        } else {
+            activeDropdown = null;
+        }
+    }
+
+    function initData() {
+        const p1 = 'p1', p2 = 'p2';
+        data = {
+            players: {},
+            categories: [],
+            periods: [
+                { key: p1, label: '1-10\'' },
+                { key: p2, label: '11-20\'' }
+            ],
+            activePeriod: p1,
+            nextPlayerId: 1,
+            colorIndex: 0
+        };
+    }
+
+    function getNextColor() {
+        const color = PLAYER_COLORS[data.colorIndex % PLAYER_COLORS.length];
+        data.colorIndex++;
+        return color;
+    }
+
+    function addPlayerData(name, team) {
+        const id = data.nextPlayerId++;
+        const color = getNextColor();
+        data.players[id] = {
+            name: name,
+            team: team || '—',
+            color: color,
+            stats: {}
+        };
+        data.periods.forEach(p => {
+            data.players[id].stats[p.key] = {};
+            data.categories.forEach(c => { data.players[id].stats[p.key][c.key] = ''; });
+        });
+        return id;
+    }
+
+    function assignColorsToAllPlayers() {
+        const ids = Object.keys(data.players);
+        ids.sort((a, b) => parseInt(a) - parseInt(b));
+        ids.forEach((id, index) => {
+            data.players[id].color = PLAYER_COLORS[index % PLAYER_COLORS.length];
+        });
+        data.colorIndex = ids.length;
+    }
+
+    function loadFromStorage() {
+        const s = localStorage.getItem(STORAGE_KEY);
+        if (s) {
+            try {
+                const p = JSON.parse(s);
+                if (p.players && p.categories && p.periods && p.activePeriod) {
+                    data = p;
+                    if (!data.colorIndex) data.colorIndex = 0;
+                    assignColorsToAllPlayers();
+                    return true;
+                }
+            } catch (e) {}
+        }
+        return false;
+    }
+
+    function saveToStorage() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            document.getElementById('saveStatus').textContent = 'сохранено';
+            document.getElementById('saveStatus').style.color = '#22a65a';
+        } catch (e) {
+            document.getElementById('saveStatus').textContent = 'ошибка';
+            document.getElementById('saveStatus').style.color = '#b33';
+        }
+    }
+
+    function autoSave() { saveToStorage(); }
+
+    function addPeriod() {
+        const input = document.getElementById('periodNameInput');
+        const label = input.value.trim();
+        if (!label) return alert('Введите название периода');
+        if (data.periods.some(p => p.label === label)) return alert('Уже есть');
+        const key = 'p' + Date.now();
+        data.periods.push({ key, label });
+        for (const id in data.players) {
+            data.players[id].stats[key] = {};
+            data.categories.forEach(c => { data.players[id].stats[key][c.key] = ''; });
+        }
+        data.activePeriod = key;
+        input.value = '';
+        renderAll();
+        autoSave();
+    }
+
+    function removePeriod(key) {
+        if (data.periods.length <= 1) return alert('Нельзя удалить последний период');
+        const p = data.periods.find(x => x.key === key);
+        if (!p) return;
+        openConfirm(
+            '⚠️ Удалить период?',
+            `Вы действительно хотите удалить период <span class="highlight">${p.label}</span>?<br><br><span style="font-size:13px;color:#888;">Все показатели за этот период будут удалены.</span>`,
+            'Удалить',
+            { type: 'deletePeriod', key: key }
+        );
+    }
+
+    function setActivePeriod(key) {
+        if (data.periods.some(p => p.key === key)) {
+            data.activePeriod = key;
+            renderAll();
+            autoSave();
+        }
+    }
+
+    function addPlayer() {
+        const name = document.getElementById('playerNameInput').value.trim();
+        const team = document.getElementById('teamNameInput').value.trim() || '—';
+        if (!name) return alert('Введите имя');
+        for (const id in data.players) {
+            if (data.players[id].name === name) return alert('Такой игрок уже есть');
+        }
+        addPlayerData(name, team);
+        document.getElementById('playerNameInput').value = '';
+        document.getElementById('teamNameInput').value = '';
+        renderAll();
+        autoSave();
+    }
+
+    function removePlayer(id) {
+        const name = data.players[id]?.name || 'неизвестный игрок';
+        openConfirm(
+            '⚠️ Удалить игрока?',
+            `Вы действительно хотите удалить игрока <span class="highlight">${name}</span>?<br><br><span style="font-size:13px;color:#888;">Все его показатели за все периоды будут удалены без возможности восстановления.</span>`,
+            'Удалить',
+            { type: 'deletePlayer', id: id, name: name }
+        );
+    }
+
+    function addCategory() {
+        const input = document.getElementById('categoryNameInput');
+        const label = input.value.trim().toUpperCase();
+        if (!label) return alert('Введите название');
+        if (data.categories.some(c => c.label === label)) return alert('Уже есть');
+        const key = 'c' + Date.now();
+        data.categories.push({ key, label });
+        for (const id in data.players) {
+            data.periods.forEach(p => { data.players[id].stats[p.key][key] = ''; });
+        }
+        input.value = '';
+        renderAll();
+        autoSave();
+    }
+
+    function removeCategory(key) {
+        const c = data.categories.find(x => x.key === key);
+        if (!c) return;
+        openConfirm(
+            '⚠️ Удалить показатель?',
+            `Вы действительно хотите удалить показатель <span class="highlight">${c.label}</span>?<br><br><span style="font-size:13px;color:#888;">Все данные по этому показателю у всех игроков будут удалены.</span>`,
+            'Удалить',
+            { type: 'deleteCategory', key: key, label: c.label }
+        );
+    }
+
+    function updateStat(playerId, periodKey, categoryKey, action) {
+        const current = data.players[playerId].stats[periodKey]?.[categoryKey] || '';
+        let val = current;
+        if (action === '+') val = current + '+';
+        else if (action === '-') val = current + '-';
+        data.players[playerId].stats[periodKey][categoryKey] = val;
+        renderAll();
+        autoSave();
+    }
+
+    // ====== Дополнительные действия через меню ======
+    function clearAllActions(playerId, periodKey, categoryKey) {
+        const playerName = data.players[playerId]?.name || 'игрок';
+        const categoryLabel = data.categories.find(c => c.key === categoryKey)?.label || categoryKey;
+        const periodLabel = data.periods.find(p => p.key === periodKey)?.label || periodKey;
+        const current = data.players[playerId]?.stats[periodKey]?.[categoryKey] || '';
+        if (!current) {
+            alert('Нет действий для очистки');
+            return;
+        }
+        openConfirm(
+            '🗑️ Очистить все действия?',
+            `Вы действительно хотите очистить все действия по показателю <span class="highlight">${categoryLabel}</span> у игрока <span class="highlight">${playerName}</span> за период <span class="highlight">${periodLabel}</span>?<br><br><span style="font-size:13px;color:#888;">Будет удалено ${current.length} записей (+ и −) без возможности восстановления.</span>`,
+            'Очистить всё',
+            { type: 'clearAllActions', playerId: playerId, periodKey: periodKey, categoryKey: categoryKey }
+        );
+    }
+
+    function removeLastPlus(playerId, periodKey, categoryKey) {
+        const playerName = data.players[playerId]?.name || 'игрок';
+        const categoryLabel = data.categories.find(c => c.key === categoryKey)?.label || categoryKey;
+        const periodLabel = data.periods.find(p => p.key === periodKey)?.label || periodKey;
+        const current = data.players[playerId]?.stats[periodKey]?.[categoryKey] || '';
+        const plusCount = (current.match(/\+/g) || []).length;
+        if (plusCount === 0) {
+            alert('Нет положительных действий (+) для удаления');
+            return;
+        }
+        openConfirm(
+            '↩️ Удалить последнее +?',
+            `Удалить последнее положительное действие (+) по показателю <span class="highlight">${categoryLabel}</span> у игрока <span class="highlight">${playerName}</span> за период <span class="highlight">${periodLabel}</span>?<br><br><span style="font-size:13px;color:#888;">Осталось ${plusCount - 1} положительных действий.</span>`,
+            'Удалить +',
+            { type: 'removeLastPlus', playerId: playerId, periodKey: periodKey, categoryKey: categoryKey }
+        );
+    }
+
+    function removeLastMinus(playerId, periodKey, categoryKey) {
+        const playerName = data.players[playerId]?.name || 'игрок';
+        const categoryLabel = data.categories.find(c => c.key === categoryKey)?.label || categoryKey;
+        const periodLabel = data.periods.find(p => p.key === periodKey)?.label || periodKey;
+        const current = data.players[playerId]?.stats[periodKey]?.[categoryKey] || '';
+        const minusCount = (current.match(/-/g) || []).length;
+        if (minusCount === 0) {
+            alert('Нет отрицательных действий (-) для удаления');
+            return;
+        }
+        openConfirm(
+            '↩️ Удалить последнее -?',
+            `Удалить последнее отрицательное действие (-) по показателю <span class="highlight">${categoryLabel}</span> у игрока <span class="highlight">${playerName}</span> за период <span class="highlight">${periodLabel}</span>?<br><br><span style="font-size:13px;color:#888;">Осталось ${minusCount - 1} отрицательных действий.</span>`,
+            'Удалить -',
+            { type: 'removeLastMinus', playerId: playerId, periodKey: periodKey, categoryKey: categoryKey }
+        );
+    }
+
+    // ====== Функции подсветки ======
+    function setupHoverEffects() {
+        document.removeEventListener('mouseover', handleHover);
+        document.removeEventListener('mouseout', handleHoverOut);
+
+        document.addEventListener('mouseover', handleHover);
+        document.addEventListener('mouseout', handleHoverOut);
+    }
+
+    function handleHover(e) {
+        const td = e.target.closest('td');
+        if (!td) return;
+
+        const table = td.closest('table');
+        if (!table) return;
+
+        clearHighlights(table);
+
+        const rowIndex = td.parentElement.rowIndex;
+        const cellIndex = td.cellIndex;
+
+        const rows = table.querySelectorAll('tr');
+        rows.forEach(row => {
+            if (row.rowIndex === rowIndex) {
+                row.classList.add('hover-row');
+            }
+        });
+
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td, th');
+            if (cells[cellIndex]) {
+                cells[cellIndex].classList.add('hover-col');
+            }
+        });
+
+        td.classList.add('hover-cell');
+    }
+
+    function handleHoverOut(e) {
+        const td = e.target.closest('td');
+        if (!td) return;
+
+        const table = td.closest('table');
+        if (!table) return;
+
+        clearHighlights(table);
+    }
+
+    function clearHighlights(table) {
+        table.querySelectorAll('.hover-row, .hover-col, .hover-cell').forEach(el => {
+            el.classList.remove('hover-row', 'hover-col', 'hover-cell');
+        });
+    }
+
+    function renderAll() {
+        const container = document.getElementById('teamsContainer');
+        const cats = data.categories;
+        const periods = data.periods;
+        const active = data.activePeriod;
+        const ids = Object.keys(data.players);
+
+        const tabs = document.getElementById('periodTabs');
+        tabs.innerHTML = periods.map(p =>
+            `<span class="period-tab ${p.key === active ? 'active' : ''}" onclick="setActivePeriod('${p.key}')">
+                ${p.label}
+                <span class="del" onclick="event.stopPropagation();removePeriod('${p.key}')">✕</span>
+            </span>`
+        ).join('');
+        const activeObj = periods.find(p => p.key === active);
+        document.getElementById('activePeriodName').textContent = activeObj ? activeObj.label : '—';
+
+        if (!active || !periods.some(p => p.key === active) || ids.length === 0 || cats.length === 0) {
+            let msg = 'Добавьте ';
+            if (ids.length === 0 && cats.length === 0) msg += 'игроков и показатели';
+            else if (ids.length === 0) msg += 'игроков';
+            else msg += 'показатели';
+            container.innerHTML = `<div class="empty">${msg}</div>`;
+            document.getElementById('totalActions').textContent = '0';
+            return;
+        }
+
+        assignColorsToAllPlayers();
+
+        const teams = {};
+        ids.forEach(id => {
+            const t = data.players[id].team || '—';
+            if (!teams[t]) teams[t] = [];
+            teams[t].push(id);
+        });
+        const sortedTeams = Object.keys(teams).sort();
+
+        let html = '';
+        let grandTotal = 0;
+        let dropdownCounter = 0;
+
+        sortedTeams.forEach(teamName => {
+            const playerIds = teams[teamName];
+            let teamTotalLen = 0, teamTotalPlus = 0;
+            const categoryTotals = {};
+            cats.forEach(c => {
+                categoryTotals[c.key] = { len: 0, plus: 0 };
+            });
+
+            html += `<div class="team-block">
+                <div class="team-title">
+                    <span>${teamName} <span class="sub">${playerIds.length}</span></span>
+                    <span class="period-badge"><strong>${activeObj ? activeObj.label : '—'}</strong></span>
+                </div>
+                <table>
+                    <thead><tr>
+                        <th style="text-align:left;padding-left:4px;">Игрок</th>`;
+
+            cats.forEach(c => {
+                html += `<th>${c.label}
+                            <span class="del-cat" onclick="removeCategory('${c.key}')">✕</span>
+                        </th>`;
+            });
+            html += `<th>Всего</th></tr></thead><tbody>`;
+
+            playerIds.forEach(id => {
+                const p = data.players[id];
+                const stats = p.stats[active] || {};
+                const playerColor = p.color || '#333';
+                let rowLen = 0, rowPlus = 0;
+
+                html += `<tr><td class="player-cell">
+                            <span class="player-name" style="color:${playerColor};">${p.name}</span>
+                            <span class="del-player" onclick="removePlayer(${id})">✕</span>
+                        </td>`;
+
+                cats.forEach(c => {
+                    const str = stats[c.key] || '';
+                    const len = str.length;
+                    const plus = (str.match(/\+/g) || []).length;
+                    const minus = (str.match(/-/g) || []).length;
+                    rowLen += len;
+                    rowPlus += plus;
+                    categoryTotals[c.key].len += len;
+                    categoryTotals[c.key].plus += plus;
+
+                    const dropdownId = 'dd_' + dropdownCounter++;
+                    const hasActions = len > 0;
+
+                    html += `<td>
+                                <div class="btn-group">
+                                    <button class="btn-act plus" onclick="updateStat(${id},'${active}','${c.key}','+')">+</button>
+                                    <button class="btn-act minus" onclick="updateStat(${id},'${active}','${c.key}','-')">−</button>
+                                    <div class="dropdown">
+                                        <button class="btn-more" onclick="toggleDropdown('${dropdownId}', event)" title="Дополнительные действия">•••</button>
+                                        <div class="dropdown-menu" id="${dropdownId}">
+                                            <div class="menu-info">${p.name} · ${c.label}</div>
+                                            <div class="menu-divider"></div>
+                                            ${hasActions ? `
+                                                <button class="menu-item" onclick="removeLastPlus(${id},'${active}','${c.key}'); closeAllDropdowns();">
+                                                    ➖ Удалить последнее +
+                                                </button>
+                                                <button class="menu-item" onclick="removeLastMinus(${id},'${active}','${c.key}'); closeAllDropdowns();">
+                                                    ➖ Удалить последнее −
+                                                </button>
+                                                <div class="menu-divider"></div>
+                                                <button class="menu-item danger" onclick="clearAllActions(${id},'${active}','${c.key}'); closeAllDropdowns();">
+                                                    🗑️ Очистить всё (${len})
+                                                </button>
+                                            ` : `
+                                                <button class="menu-item" style="color:#999; cursor:default;" disabled>
+                                                    Нет действий
+                                                </button>
+                                            `}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="stat-badge">
+                                    ${len === 0 ? '—' : `<span class="plus-count">+${plus}</span><span class="sep">|</span><span class="minus-count">−${minus}</span>`}
+                                </div>
+                            </td>`;
+                });
+
+                const totalPct = rowLen === 0 ? 0 : Math.round((rowPlus / rowLen) * 100);
+                teamTotalLen += rowLen;
+                teamTotalPlus += rowPlus;
+                grandTotal += rowLen;
+
+                html += `<td class="total-cell">
+                            ${rowLen === 0 ? '—' : `${rowLen} <span class="${totalPct >= 50 ? 'good' : 'bad'}">${totalPct}%</span>`}
+                        </td></tr>`;
+            });
+
+            const teamPct = teamTotalLen === 0 ? 0 : Math.round((teamTotalPlus / teamTotalLen) * 100);
+            html += `<tr class="team-total-row">
+                        <td class="label">итого</td>`;
+            cats.forEach(c => {
+                const t = categoryTotals[c.key];
+                const pct = t.len === 0 ? 0 : Math.round((t.plus / t.len) * 100);
+                html += `<td class="team-total-stat">
+                            ${t.len === 0 ? '—' : `${t.len} <span class="${pct >= 50 ? 'good' : 'bad'}">${pct}%</span>`}
+                        </td>`;
+            });
+            html += `<td class="team-total-stat">
+                        ${teamTotalLen} <span class="${teamPct >= 50 ? 'good' : 'bad'}">${teamPct}%</span>
+                    </td></tr>`;
+
+            html += `</tbody></table></div>`;
+        });
+
+        container.innerHTML = html;
+        document.getElementById('totalActions').textContent = grandTotal;
+
+        setupHoverEffects();
+    }
+
+    function resetAll() {
+        if (!confirm('Удалить всё (всех игроков, показатели и статистику)?')) return;
+        initData();
+        renderAll();
+        autoSave();
+    }
+
+function exportData() {
+    const cats = data.categories.map(c => c.label);
+    const periods = data.periods;
+    const players = data.players;
+
+    // Сортируем игроков по командам
+    const teams = {};
+    for (const id in players) {
+        const p = players[id];
+        const team = p.team || '—';
+        if (!teams[team]) teams[team] = [];
+        teams[team].push(id);
+    }
+    const sortedTeams = Object.keys(teams).sort();
+
+    let csv = '';
+    let separator = ';';
+
+    // Функция для вывода данных по периоду
+    function exportPeriod(period, periodLabel, isTotal = false) {
+        // Заголовки столбцов
+        csv += `Период${separator}Команда${separator}Игрок`;
+        cats.forEach(c => { csv += `${separator}${c}`; });
+        csv += `${separator}Итого\n`;
+
+        sortedTeams.forEach(teamName => {
+            const playerIds = teams[teamName];
+            const teamTotals = {};
+            cats.forEach(c => { teamTotals[c] = { len: 0, plus: 0 }; });
+            let teamTotalLen = 0, teamTotalPlus = 0;
+            let hasAnyPlayer = false;
+
+            // Выводим игроков
+            playerIds.forEach(id => {
+                const p = players[id];
+                let stats;
+
+                if (isTotal) {
+                    // Для итогового периода суммируем все периоды
+                    stats = {};
+                    cats.forEach(catLabel => {
+                        const catKey = data.categories.find(c => c.label === catLabel)?.key;
+                        if (!catKey) return;
+                        let totalStr = '';
+                        periods.forEach(per => {
+                            const periodStats = p.stats[per.key] || {};
+                            totalStr += periodStats[catKey] || '';
+                        });
+                        stats[catKey] = totalStr;
+                    });
+                } else {
+                    stats = p.stats[period.key] || {};
+                }
+
+                // Проверяем, есть ли у игрока хоть одно действие
+                let hasActions = false;
+                let row = `${periodLabel}${separator}${teamName}${separator}${p.name}`;
+                let rowLen = 0, rowPlus = 0;
+
+                cats.forEach(catLabel => {
+                    const catKey = data.categories.find(c => c.label === catLabel)?.key;
+                    if (!catKey) {
+                        row += `${separator}- (0%)`;
+                        return;
+                    }
+                    const str = stats[catKey] || '';
+                    const len = str.length;
+                    const plus = (str.match(/\+/g) || []).length;
+                    const minus = (str.match(/-/g) || []).length;
+
+                    if (len > 0) hasActions = true;
+                    rowLen += len;
+                    rowPlus += plus;
+                    teamTotals[catLabel].len += len;
+                    teamTotals[catLabel].plus += plus;
+                    teamTotalLen += len;
+                    teamTotalPlus += plus;
+
+                    if (len === 0) {
+                        row += `${separator}- (0%)`;
+                    } else {
+                        const pct = Math.round((plus / len) * 100);
+                        row += `${separator}${len} (${pct}%)`;
+                    }
+                });
+
+                // Пропускаем игрока, если нет действий
+                if (!hasActions) return;
+
+                hasAnyPlayer = true;
+                const totalPct = rowLen === 0 ? 0 : Math.round((rowPlus / rowLen) * 100);
+                row += `${separator}${rowLen} (${totalPct}%)`;
+                csv += row + '\n';
+            });
+
+            // Итого по команде
+            if (hasAnyPlayer) {
+                let teamRow = `${periodLabel}${separator}${teamName}${separator}Итого`;
+                const teamTotalPct = teamTotalLen === 0 ? 0 : Math.round((teamTotalPlus / teamTotalLen) * 100);
+                cats.forEach(catLabel => {
+                    const t = teamTotals[catLabel];
+                    if (t.len === 0) {
+                        teamRow += `${separator}- (0%)`;
+                    } else {
+                        const pct = Math.round((t.plus / t.len) * 100);
+                        teamRow += `${separator}${t.len} (${pct}%)`;
+                    }
+                });
+                teamRow += `${separator}${teamTotalLen} (${teamTotalPct}%)`;
+                csv += teamRow + '\n';
+            }
+        });
+
+        // Пустая строка между периодами
+        csv += '\n';
+    }
+
+    // Экспортируем все периоды
+    periods.forEach(period => {
+        exportPeriod(period, period.label, false);
+    });
+
+    // Экспортируем итоговый период "ВСЕГО"
+    exportPeriod(null, 'ВСЕГО', true);
+
+    // Копируем в буфер
+    navigator.clipboard.writeText(csv).then(() => {
+        alert('CSV скопирован в буфер обмена!');
+    }).catch(() => {
+        const textarea = document.createElement('textarea');
+        textarea.value = csv;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('CSV скопирован в буфер обмена!');
+    });
+}
+
+    const loaded = loadFromStorage();
+    if (!loaded) initData();
+    renderAll();
+    if (!loaded) saveToStorage();
+
+    window.addEventListener('beforeunload', () => saveToStorage());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) saveToStorage(); });
+
+    document.getElementById('playerNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
+    document.getElementById('categoryNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addCategory(); });
+    document.getElementById('periodNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addPeriod(); });
+</script>
+</body>
+</html>

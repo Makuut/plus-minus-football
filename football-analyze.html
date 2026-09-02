@@ -582,7 +582,12 @@
 
     <div class="footer">
         <div class="info">всего действий: <strong id="totalActions">0</strong></div>
-        <button class="btn" onclick="exportData()">csv</button>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <button class="btn" onclick="importSourceData()">импорт</button>
+            <button class="btn" onclick="exportSourceData()">экспорт</button>
+            <button class="btn" onclick="exportData()">отчет</button>
+        </div>
+        <input type="file" id="sourceImportInput" accept="application/json,.json" multiple style="display:none;">
     </div>
 
 </div>
@@ -1176,6 +1181,177 @@
         autoSave();
     }
 
+    function downloadTextFile(filename, text, mimeType) {
+        const blob = new Blob([text], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
+    function exportSourceData() {
+        const payload = {
+            type: 'ttd-source-data',
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            data: JSON.parse(JSON.stringify(data))
+        };
+        downloadTextFile('source.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
+    }
+
+    function importSourceData() {
+        document.getElementById('sourceImportInput').click();
+    }
+
+    function readSourceFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    resolve(getImportedData(JSON.parse(reader.result)));
+                } catch (e) {
+                    reject(new Error(`${file.name}: ${e.message || 'некорректный файл'}`));
+                }
+            };
+            reader.onerror = () => reject(new Error(`${file.name}: не удалось прочитать файл`));
+            reader.readAsText(file);
+        });
+    }
+
+    function getImportedData(payload) {
+        const imported = payload?.type === 'ttd-source-data' ? payload.data : payload;
+        if (!imported || typeof imported !== 'object') throw new Error('Некорректный файл исходников');
+        if (!imported.players || !Array.isArray(imported.categories) || !Array.isArray(imported.periods)) {
+            throw new Error('В файле нет игроков, периодов или показателей');
+        }
+        return imported;
+    }
+
+    function normalizeActions(value) {
+        return typeof value === 'string' ? value.replace(/[^+-]/g, '') : '';
+    }
+
+    function ensureCategoryByLabel(label) {
+        let category = data.categories.find(c => c.label === label);
+        if (category) return category.key;
+
+        const key = 'c' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        data.categories.push({ key, label });
+        for (const id in data.players) {
+            data.periods.forEach(p => {
+                if (!data.players[id].stats[p.key]) data.players[id].stats[p.key] = {};
+                data.players[id].stats[p.key][key] = '';
+            });
+        }
+        return key;
+    }
+
+    function ensurePeriodByLabel(label) {
+        let period = data.periods.find(p => p.label === label);
+        if (period) return period.key;
+
+        const key = 'p' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        data.periods.push({ key, label });
+        for (const id in data.players) {
+            data.players[id].stats[key] = {};
+            data.categories.forEach(c => { data.players[id].stats[key][c.key] = ''; });
+        }
+        if (!data.activePeriod) data.activePeriod = key;
+        return key;
+    }
+
+    function findPlayerByNameAndTeam(name, team) {
+        for (const id in data.players) {
+            if (data.players[id].name === name && (data.players[id].team || '—') === team) return id;
+        }
+        return null;
+    }
+
+    function mergeSourceData(imported) {
+        const categoryMap = {};
+        imported.categories.forEach(c => {
+            const label = String(c?.label || '').trim().toUpperCase();
+            if (label) categoryMap[c.key] = ensureCategoryByLabel(label);
+        });
+
+        const periodMap = {};
+        imported.periods.forEach(p => {
+            const label = String(p?.label || '').trim();
+            if (label) periodMap[p.key] = ensurePeriodByLabel(label);
+        });
+
+        let addedPlayers = 0;
+        let mergedPlayers = 0;
+        let importedActions = 0;
+
+        for (const importedId in imported.players) {
+            const sourcePlayer = imported.players[importedId];
+            const name = String(sourcePlayer?.name || '').trim();
+            if (!name) continue;
+
+            const team = String(sourcePlayer?.team || '—').trim() || '—';
+            let targetId = findPlayerByNameAndTeam(name, team);
+            if (targetId) {
+                mergedPlayers++;
+            } else {
+                targetId = addPlayerData(name, team);
+                addedPlayers++;
+            }
+
+            for (const sourcePeriodKey in sourcePlayer.stats || {}) {
+                const targetPeriodKey = periodMap[sourcePeriodKey];
+                if (!targetPeriodKey) continue;
+
+                if (!data.players[targetId].stats[targetPeriodKey]) data.players[targetId].stats[targetPeriodKey] = {};
+                const sourceStats = sourcePlayer.stats[sourcePeriodKey] || {};
+
+                for (const sourceCategoryKey in sourceStats) {
+                    const targetCategoryKey = categoryMap[sourceCategoryKey];
+                    if (!targetCategoryKey) continue;
+
+                    const actions = normalizeActions(sourceStats[sourceCategoryKey]);
+                    if (!actions) continue;
+
+                    data.players[targetId].stats[targetPeriodKey][targetCategoryKey] =
+                        (data.players[targetId].stats[targetPeriodKey][targetCategoryKey] || '') + actions;
+                    importedActions += actions.length;
+                }
+            }
+        }
+
+        assignColorsToAllPlayers();
+        return { addedPlayers, mergedPlayers, importedActions };
+    }
+
+    document.getElementById('sourceImportInput').addEventListener('change', async (event) => {
+        const files = Array.from(event.target.files || []);
+        event.target.value = '';
+        if (files.length === 0) return;
+
+        try {
+            const importedItems = await Promise.all(files.map(readSourceFile));
+            if (!confirm(`Импортировать исходники из файлов: ${files.length}?\n\nСовпадающие игроки будут объединены, действия будут добавлены к текущим.`)) return;
+
+            const total = { addedPlayers: 0, mergedPlayers: 0, importedActions: 0 };
+            importedItems.forEach(imported => {
+                const result = mergeSourceData(imported);
+                total.addedPlayers += result.addedPlayers;
+                total.mergedPlayers += result.mergedPlayers;
+                total.importedActions += result.importedActions;
+            });
+
+            renderAll();
+            autoSave();
+            alert(`Импорт завершен.\nФайлов: ${files.length}\nДобавлено игроков: ${total.addedPlayers}\nОбъединено игроков: ${total.mergedPlayers}\nДобавлено действий: ${total.importedActions}`);
+        } catch (e) {
+            alert(e.message || 'Не удалось импортировать исходники');
+        }
+    });
+
 function exportData() {
     const cats = data.categories.map(c => c.label);
     const periods = data.periods;
@@ -1301,18 +1477,7 @@ function exportData() {
     // Экспортируем итоговый период "ВСЕГО"
     exportPeriod(null, 'ВСЕГО', true);
 
-    // Копируем в буфер
-    navigator.clipboard.writeText(csv).then(() => {
-        alert('CSV скопирован в буфер обмена!');
-    }).catch(() => {
-        const textarea = document.createElement('textarea');
-        textarea.value = csv;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        alert('CSV скопирован в буфер обмена!');
-    });
+    downloadTextFile('report.csv', '\uFEFF' + csv, 'text/csv;charset=utf-8');
 }
 
     const loaded = loadFromStorage();

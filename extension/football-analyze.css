@@ -1,0 +1,624 @@
+* {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        body {
+            background: #fafafa;
+            margin: 0;
+            padding: 24px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            display: grid;
+            grid-template-columns: 1fr minmax(160px, auto) 1fr;
+            align-items: center;
+            gap: 8px 16px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0;
+            color: #111;
+            letter-spacing: -0.3px;
+        }
+        .header .status {
+            font-size: 13px;
+            color: #22a65a;
+            background: #eaf9ed;
+            padding: 2px 14px;
+            border-radius: 20px;
+            display: none;
+        }
+        .current-action-status,
+        .previous-action-status {
+            font-size: 16px;
+            color: #888;
+            font-variant-numeric: tabular-nums;
+            min-height: 22px;
+        }
+        .current-action-status {
+            text-align: center;
+            color: #222;
+            font-weight: 600;
+        }
+        .previous-action-status {
+            text-align: right;
+        }
+        .previous-action-status strong {
+            color: #222;
+            font-weight: 600;
+        }
+        .save-error {
+            color: #b33 !important;
+            font-weight: 600;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e5e5;
+            align-items: center;
+        }
+        .controls input {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 13px;
+            background: #fff;
+            min-width: 120px;
+        }
+        .controls input:focus {
+            outline: none;
+            border-color: #888;
+        }
+        .controls .sep {
+            color: #ccc;
+            font-size: 18px;
+            font-weight: 300;
+            padding: 0 2px;
+        }
+        .btn {
+            border: none;
+            border-radius: 4px;
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            background: #eee;
+            color: #222;
+            transition: background 0.15s;
+        }
+        .btn:hover {
+            background: #ddd;
+        }
+        .btn-add {
+            background: #222;
+            color: #fff;
+        }
+        .btn-add:hover {
+            background: #000;
+        }
+        .btn-danger {
+            background: #f5f5f5;
+            color: #b33;
+        }
+        .btn-danger:hover {
+            background: #f0e0e0;
+        }
+
+        .period-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+            margin: 12px 0 16px;
+            padding: 6px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .period-bar .label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-right: 8px;
+        }
+        .period-tab {
+            font-size: 13px;
+            padding: 4px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #555;
+            transition: all 0.15s;
+            border: 1px solid transparent;
+        }
+        .period-tab:hover {
+            background: #e5e5e5;
+        }
+        .period-tab.active {
+            background: #222;
+            color: #fff;
+        }
+        .period-tab .del {
+            margin-left: 6px;
+            opacity: 0.4;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .period-tab .del:hover {
+            opacity: 1;
+        }
+        .period-bar .active-label {
+            font-size: 13px;
+            color: #888;
+            margin-left: 12px;
+        }
+        .period-bar .active-label strong {
+            color: #222;
+        }
+
+        .team-block {
+            margin-bottom: 28px;
+        }
+        .team-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #111;
+            padding: 6px 0 8px;
+            border-bottom: 2px solid #222;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 4px 12px;
+        }
+        .team-title .sub {
+            font-weight: 400;
+            font-size: 13px;
+            color: #888;
+        }
+        .team-title .period-badge {
+            font-weight: 400;
+            font-size: 13px;
+            color: #888;
+        }
+        .team-title .period-badge strong {
+            color: #222;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        th {
+            text-align: center;
+            font-weight: 700;
+            font-size: 13px;
+            color: #111;
+            padding: 8px 4px 10px;
+            border-bottom: 1px solid #e5e5e5;
+            letter-spacing: 0.2px;
+            transition: background 0.15s;
+        }
+        th .del-cat {
+            display: block;
+            font-size: 11px;
+            color: #ccc;
+            cursor: pointer;
+            font-weight: 400;
+            letter-spacing: 0;
+            margin-top: 2px;
+        }
+        th .del-cat:hover {
+            color: #b33;
+        }
+        td {
+            padding: 4px 2px;
+            text-align: center;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+            transition: background 0.15s;
+        }
+        .player-cell {
+            text-align: left;
+            padding-left: 4px;
+            font-weight: 700;
+            white-space: nowrap;
+            min-width: 100px;
+        }
+        .player-cell .player-name {
+            font-weight: 700;
+        }
+        .player-cell .del-player {
+            margin-left: 8px;
+            font-size: 13px;
+            color: #ccc;
+            cursor: pointer;
+            font-weight: 400;
+        }
+        .player-cell .del-player:hover {
+            color: #b33;
+        }
+
+        /* Подсветка строк и столбцов */
+        .hover-row {
+            background: #f0f7ff !important;
+        }
+        .hover-col {
+            background: #f0f7ff !important;
+        }
+        .hover-cell {
+            background: #dbeafe !important;
+        }
+        .team-total-row.hover-row td {
+            background: #f0f7ff !important;
+        }
+        .team-total-row td.hover-col {
+            background: #f0f7ff !important;
+        }
+        .team-total-row td.hover-cell {
+            background: #dbeafe !important;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 3px;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn-act {
+            border: none;
+            border-radius: 3px;
+            padding: 4px 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #333;
+            transition: background 0.12s;
+            min-width: 34px;
+        }
+        .btn-act:hover {
+            background: #e0e0e0;
+        }
+        .btn-act.plus {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .btn-act.plus:hover {
+            background: #c8e6c9;
+        }
+        .btn-act.minus {
+            background: #fce4ec;
+            color: #c62828;
+        }
+        .btn-act.minus:hover {
+            background: #f8bbd0;
+        }
+
+        /* Кнопка "три точки" */
+        .btn-more {
+            border: none;
+            border-radius: 3px;
+            padding: 4px 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            background: transparent;
+            color: #999;
+            transition: all 0.15s;
+            min-width: 28px;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+        .btn-more:hover {
+            background: #e8e8e8;
+            color: #333;
+        }
+        .btn-more:active {
+            transform: scale(0.9);
+        }
+
+        /* Выпадающее меню */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            min-width: 180px;
+            padding: 6px 0;
+            z-index: 100;
+            display: none;
+            border: 1px solid #eee;
+        }
+        .dropdown-menu.active {
+            display: block;
+        }
+        .dropdown-menu .menu-item {
+            display: block;
+            width: 100%;
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            text-align: left;
+            font-size: 13px;
+            color: #333;
+            cursor: pointer;
+            transition: background 0.1s;
+            font-family: inherit;
+        }
+        .dropdown-menu .menu-item:hover {
+            background: #f5f5f5;
+        }
+        .dropdown-menu .menu-item.danger {
+            color: #c62828;
+        }
+        .dropdown-menu .menu-item.danger:hover {
+            background: #fce4ec;
+        }
+        .dropdown-menu .menu-divider {
+            height: 1px;
+            background: #eee;
+            margin: 4px 12px;
+        }
+        .dropdown-menu .menu-info {
+            padding: 6px 16px;
+            font-size: 11px;
+            color: #999;
+            white-space: nowrap;
+        }
+
+        .stat-badge {
+            font-size: 11px;
+            color: #888;
+            background: #f5f5f5;
+            padding: 1px 6px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-top: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-badge .plus-count {
+            color: #888;
+        }
+        .stat-badge .minus-count {
+            color: #888;
+        }
+        .stat-badge .sep {
+            color: #ccc;
+            margin: 0 1px;
+        }
+
+        .total-cell {
+            font-weight: 500;
+            font-size: 13px;
+        }
+        .total-cell .good {
+            color: #2e7d32;
+        }
+        .total-cell .bad {
+            color: #c62828;
+        }
+
+        .team-total-row td {
+            border-top: 2px solid #222;
+            border-bottom: none;
+            padding: 6px 4px;
+            font-weight: 500;
+            font-size: 13px;
+            color: #333;
+            background: #fafafa;
+        }
+        .team-total-row .label {
+            text-align: right;
+            padding-right: 16px;
+            color: #888;
+            font-weight: 400;
+        }
+        .team-total-row .team-total-stat {
+            font-weight: 600;
+            font-size: 13px;
+        }
+        .team-total-row .team-total-stat .good {
+            color: #2e7d32;
+        }
+        .team-total-row .team-total-stat .bad {
+            color: #c62828;
+        }
+
+        .empty {
+            color: #bbb;
+            text-align: center;
+            padding: 40px 0;
+            font-size: 15px;
+        }
+
+        .footer {
+            margin-top: 24px;
+            padding-top: 14px;
+            border-top: 1px solid #e5e5e5;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        .footer .info {
+            font-size: 13px;
+            color: #888;
+        }
+        .footer .info strong {
+            color: #222;
+        }
+
+        .confirm-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .confirm-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .confirm-box {
+            background: #fff;
+            padding: 28px 32px;
+            border-radius: 12px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.2);
+        }
+        .confirm-box h3 {
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #111;
+        }
+        .confirm-box p {
+            margin: 8px 0 20px 0;
+            font-size: 14px;
+            color: #555;
+            line-height: 1.5;
+        }
+        .confirm-box .highlight {
+            font-weight: 700;
+            color: #111;
+            background: #f0f0f0;
+            padding: 2px 10px;
+            border-radius: 4px;
+        }
+        .confirm-box .btn-row {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .confirm-box .btn-row .btn {
+            padding: 8px 24px;
+        }
+        .confirm-box .btn-row .btn-cancel {
+            background: #eee;
+            color: #333;
+        }
+        .confirm-box .btn-row .btn-cancel:hover {
+            background: #ddd;
+        }
+        .confirm-box .btn-row .btn-confirm {
+            background: #b33;
+            color: #fff;
+        }
+        .confirm-box .btn-row .btn-confirm:hover {
+            background: #922;
+        }
+        .confirm-box .btn-row .btn-confirm-green {
+            background: #2e7d32;
+            color: #fff;
+        }
+        .confirm-box .btn-row .btn-confirm-green:hover {
+            background: #1b5e20;
+        }
+
+        .settings-form {
+            display: grid;
+            gap: 14px;
+            margin: 16px 0 20px;
+        }
+        .settings-field {
+            display: grid;
+            gap: 6px;
+        }
+        .settings-field label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #222;
+        }
+        .settings-field textarea {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 13px;
+            line-height: 1.45;
+            font-family: inherit;
+        }
+        .settings-field textarea:focus {
+            outline: none;
+            border-color: #888;
+        }
+        .settings-field input {
+            width: 80px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .settings-field input:focus {
+            outline: none;
+            border-color: #888;
+        }
+        .settings-action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 16px;
+            align-items: end;
+        }
+        .settings-action-row .settings-field {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .settings-action-row .settings-field label {
+            font-weight: 500;
+            color: #555;
+        }
+        .hotkey {
+            color: #888;
+            font-weight: 400;
+            font-size: 12px;
+        }
+        @media (max-width: 700px) {
+            body { padding: 12px; }
+            .header { grid-template-columns: 1fr; align-items: start; }
+            .current-action-status, .previous-action-status { text-align: left; }
+            .controls input { min-width: 80px; font-size: 12px; }
+            .btn { font-size: 12px; padding: 4px 12px; }
+            .btn-act { padding: 3px 7px; font-size: 12px; min-width: 28px; }
+            .btn-more { padding: 2px 4px; font-size: 12px; min-width: 24px; }
+            th { font-size: 11px; }
+            td { font-size: 12px; }
+            .player-cell { min-width: 70px; font-size: 13px; }
+            .stat-badge { font-size: 10px; padding: 1px 5px; }
+            .container { padding: 0; }
+            .confirm-box { padding: 20px; }
+            .dropdown-menu { min-width: 150px; right: -10px; }
+            .settings-field textarea { min-height: 90px; }
+            .settings-action-row { align-items: start; }
+        }

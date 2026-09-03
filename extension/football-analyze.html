@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ТТД — статистика по периодам</title>
+    <link rel="stylesheet" href="football-analyze.css">
+</head>
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <h1>ТТД</h1>
+        <div class="current-action-status" id="shortcutStatus">—</div>
+        <div class="previous-action-status" id="lastActionStatus">—</div>
+        <span class="status" id="saveStatus">сохранено</span>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="teamNameInput" list="teamOptions" placeholder="Команда" style="min-width:100px;">
+        <datalist id="teamOptions"></datalist>
+        <input type="text" id="playerNameInput" list="playerOptions" placeholder="Игрок">
+        <datalist id="playerOptions"></datalist>
+        <input type="text" id="playerKeyInput" maxlength="1" placeholder="клав." style="min-width:54px;width:54px;">
+        <button class="btn btn-add" data-action="add-player">+ игрок</button>
+
+        <span class="sep">|</span>
+
+        <input type="text" id="categoryNameInput" list="categoryOptions" placeholder="Показатель" style="min-width:100px;">
+        <datalist id="categoryOptions"></datalist>
+        <input type="text" id="categoryKeyInput" maxlength="1" placeholder="клав." style="min-width:54px;width:54px;">
+        <button class="btn btn-add" data-action="add-category">+ показатель</button>
+
+        <span class="sep">|</span>
+
+        <input type="text" id="periodNameInput" placeholder="Период" style="min-width:90px;">
+        <button class="btn" data-action="add-period">+ период</button>
+
+        <button class="btn btn-danger" data-action="reset-all" style="margin-left:auto;">сброс</button>
+    </div>
+
+    <div class="period-bar" id="periodBar">
+        <span class="label">Период</span>
+        <div id="periodTabs" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+        <span class="active-label" id="activePeriodLabel">активный: <strong id="activePeriodName">—</strong></span>
+    </div>
+
+    <div id="teamsContainer"></div>
+
+    <div class="footer">
+        <div class="info">всего действий: <strong id="totalActions">0</strong></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <button class="btn" data-action="import-source-data">импорт</button>
+            <button class="btn" data-action="export-source-data">экспорт</button>
+            <button class="btn" data-action="export-data">отчет</button>
+            <button class="btn" data-action="open-defaults-settings">настройки</button>
+        </div>
+        <input type="file" id="sourceImportInput" accept="application/json,.json" multiple style="display:none;">
+    </div>
+
+</div>
+
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <h3 id="confirmTitle">⚠️ Подтверждение</h3>
+        <p id="confirmMessage">Вы уверены?</p>
+        <div class="btn-row">
+            <button class="btn btn-cancel" data-action="close-confirm">Отмена</button>
+            <button class="btn btn-confirm" id="confirmDeleteBtn">Удалить</button>
+        </div>
+    </div>
+</div>
+
+<div class="confirm-overlay" id="settingsOverlay">
+    <div class="confirm-box">
+        <h3>Настройки по умолчанию</h3>
+        <p>Значения используются при первом запуске и после сброса.</p>
+        <div class="settings-form">
+            <div class="settings-field">
+                <label for="defaultCategoriesInput">Показатели</label>
+                <textarea id="defaultCategoriesInput" placeholder="Один показатель на строку: ПАС | q"></textarea>
+            </div>
+            <div class="settings-field">
+                <label for="defaultTeamsInput">Команды</label>
+                <textarea id="defaultTeamsInput" placeholder="Одна команда на строку"></textarea>
+            </div>
+            <div class="settings-field">
+                <label for="defaultPlayersInput">Игроки</label>
+                <textarea id="defaultPlayersInput" placeholder="Один игрок на строку: Максим | 1"></textarea>
+            </div>
+            <div class="settings-field">
+                <label>Положительное действие</label>
+                <div class="settings-action-row">
+                    <div class="settings-field">
+                        <label for="positiveKeyInput">Добавить</label>
+                        <input type="text" id="positiveKeyInput" maxlength="1" placeholder="+">
+                    </div>
+                    <div class="settings-field">
+                        <label for="removePositiveKeyInput">Удалить</label>
+                        <input type="text" id="removePositiveKeyInput" maxlength="1" placeholder="/">
+                    </div>
+                </div>
+            </div>
+            <div class="settings-field">
+                <label>Отрицательное действие</label>
+                <div class="settings-action-row">
+                    <div class="settings-field">
+                        <label for="negativeKeyInput">Добавить</label>
+                        <input type="text" id="negativeKeyInput" maxlength="1" placeholder="-">
+                    </div>
+                    <div class="settings-field">
+                        <label for="removeNegativeKeyInput">Удалить</label>
+                        <input type="text" id="removeNegativeKeyInput" maxlength="1" placeholder="*">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-cancel" data-action="close-defaults-settings">Отмена</button>
+            <button class="btn btn-confirm-green" data-action="save-defaults-settings">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="football-analyze.js" defer></script>
+</body>
+</html>

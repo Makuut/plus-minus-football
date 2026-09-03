@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Plus Minus Football",
+  "description": "Анализ футбольных ТТД по игрокам, командам и периодам.",
+  "version": "1.0.0",
+  "action": {
+    "default_title": "Открыть анализ футбола"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

@@ -527,6 +527,36 @@
             background: #1b5e20;
         }
 
+        .settings-form {
+            display: grid;
+            gap: 14px;
+            margin: 16px 0 20px;
+        }
+        .settings-field {
+            display: grid;
+            gap: 6px;
+        }
+        .settings-field label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #222;
+        }
+        .settings-field textarea {
+            width: 100%;
+            min-height: 110px;
+            resize: vertical;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 13px;
+            line-height: 1.45;
+            font-family: inherit;
+        }
+        .settings-field textarea:focus {
+            outline: none;
+            border-color: #888;
+        }
+
         @media (max-width: 700px) {
             body { padding: 12px; }
             .controls input { min-width: 80px; font-size: 12px; }
@@ -540,6 +570,7 @@
             .container { padding: 0; }
             .confirm-box { padding: 20px; }
             .dropdown-menu { min-width: 150px; right: -10px; }
+            .settings-field textarea { min-height: 90px; }
         }
     </style>
 </head>
@@ -555,13 +586,16 @@
     </div>
 
     <div class="controls">
-        <input type="text" id="playerNameInput" placeholder="Игрок">
-        <input type="text" id="teamNameInput" placeholder="Команда" style="min-width:100px;">
+        <input type="text" id="playerNameInput" list="playerOptions" placeholder="Игрок">
+        <datalist id="playerOptions"></datalist>
+        <input type="text" id="teamNameInput" list="teamOptions" placeholder="Команда" style="min-width:100px;">
+        <datalist id="teamOptions"></datalist>
         <button class="btn btn-add" onclick="addPlayer()">+ игрок</button>
 
         <span class="sep">|</span>
 
-        <input type="text" id="categoryNameInput" placeholder="Показатель" style="min-width:100px;">
+        <input type="text" id="categoryNameInput" list="categoryOptions" placeholder="Показатель" style="min-width:100px;">
+        <datalist id="categoryOptions"></datalist>
         <button class="btn btn-add" onclick="addCategory()">+ показатель</button>
 
         <span class="sep">|</span>
@@ -586,6 +620,7 @@
             <button class="btn" onclick="importSourceData()">импорт</button>
             <button class="btn" onclick="exportSourceData()">экспорт</button>
             <button class="btn" onclick="exportData()">отчет</button>
+            <button class="btn" onclick="openDefaultsSettings()">настройки</button>
         </div>
         <input type="file" id="sourceImportInput" accept="application/json,.json" multiple style="display:none;">
     </div>
@@ -603,14 +638,44 @@
     </div>
 </div>
 
+<div class="confirm-overlay" id="settingsOverlay">
+    <div class="confirm-box">
+        <h3>Настройки по умолчанию</h3>
+        <p>Значения используются при первом запуске и после сброса.</p>
+        <div class="settings-form">
+            <div class="settings-field">
+                <label for="defaultCategoriesInput">Показатели</label>
+                <textarea id="defaultCategoriesInput" placeholder="Один показатель на строку"></textarea>
+            </div>
+            <div class="settings-field">
+                <label for="defaultTeamsInput">Команды</label>
+                <textarea id="defaultTeamsInput" placeholder="Одна команда на строку"></textarea>
+            </div>
+            <div class="settings-field">
+                <label for="defaultPlayersInput">Игроки</label>
+                <textarea id="defaultPlayersInput" placeholder="Один игрок на строку"></textarea>
+            </div>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-cancel" onclick="closeDefaultsSettings()">Отмена</button>
+            <button class="btn btn-confirm-green" onclick="saveDefaultsSettings()">Сохранить</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const STORAGE_KEY = 'ttd_minimal_data';
+    const DEFAULT_SETTINGS_KEY = 'ttd_default_settings';
 
     const PLAYER_COLORS = [
         '#e74c3c', '#2980b9', '#27ae60', '#f39c12', '#8e44ad',
         '#1abc9c', '#e67e22', '#2c3e50', '#e84393', '#00b894',
         '#6c5ce7', '#fdcb6e', '#d63031', '#0984e3', '#00cec9'
     ];
+
+    const DEFAULT_CATEGORIES = ['ПАС', 'УДАР', 'ПЕРЕХВАТ', 'ОТБОР', 'ОБВОДКА'];
+    const DEFAULT_TEAMS = ['Зеленые', 'Оранжевые'];
+    const DEFAULT_PLAYERS = ['РусланЗ', 'Влад', 'Максим', 'РусланС', 'Ильдар', 'Алмаз', 'Рома', 'Ленар', 'Паша', 'Дима', 'Ильшат', 'Альмир', 'Радик', 'Айнур', 'Ирек'];
 
     let data = {
         players: {},
@@ -705,9 +770,13 @@
     document.getElementById('confirmOverlay').addEventListener('click', (e) => {
         if (e.target === document.getElementById('confirmOverlay')) closeConfirm();
     });
+    document.getElementById('settingsOverlay').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('settingsOverlay')) closeDefaultsSettings();
+    });
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeConfirm();
+            closeDefaultsSettings();
             closeAllDropdowns();
         }
     });
@@ -738,14 +807,90 @@
         }
     }
 
+    function normalizeDefaultList(text, forceUppercase = false) {
+        const seen = new Set();
+        return String(text || '')
+            .split(/\r?\n/)
+            .map(item => item.trim())
+            .filter(Boolean)
+            .map(item => forceUppercase ? item.toUpperCase() : item)
+            .filter(item => {
+                const key = item.toLowerCase();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+    }
+
+    function loadDefaultSettings() {
+        try {
+            const raw = localStorage.getItem(DEFAULT_SETTINGS_KEY);
+            if (!raw) return {};
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveDefaultSettings(settings) {
+        localStorage.setItem(DEFAULT_SETTINGS_KEY, JSON.stringify(settings));
+    }
+
+    function getDefaultCategories() {
+        const settings = loadDefaultSettings();
+        return Array.isArray(settings.categories) && settings.categories.length > 0
+            ? settings.categories
+            : DEFAULT_CATEGORIES;
+    }
+
+    function getDefaultTeams() {
+        const settings = loadDefaultSettings();
+        return Array.isArray(settings.teams) && settings.teams.length > 0
+            ? settings.teams
+            : DEFAULT_TEAMS;
+    }
+
+    function getDefaultPlayers() {
+        const settings = loadDefaultSettings();
+        return Array.isArray(settings.players)
+            ? settings.players
+            : DEFAULT_PLAYERS;
+    }
+
+    function openDefaultsSettings() {
+        document.getElementById('defaultCategoriesInput').value = getDefaultCategories().join('\n');
+        document.getElementById('defaultTeamsInput').value = getDefaultTeams().join('\n');
+        document.getElementById('defaultPlayersInput').value = getDefaultPlayers().join('\n');
+        document.getElementById('settingsOverlay').classList.add('active');
+    }
+
+    function closeDefaultsSettings() {
+        document.getElementById('settingsOverlay').classList.remove('active');
+    }
+
+    function saveDefaultsSettings() {
+        const categories = normalizeDefaultList(document.getElementById('defaultCategoriesInput').value, true);
+        const teams = normalizeDefaultList(document.getElementById('defaultTeamsInput').value);
+        const players = normalizeDefaultList(document.getElementById('defaultPlayersInput').value);
+        if (categories.length === 0) return alert('Добавьте хотя бы один показатель по умолчанию');
+        if (teams.length === 0) return alert('Добавьте хотя бы одну команду по умолчанию');
+
+        saveDefaultSettings({ categories, teams, players });
+        closeDefaultsSettings();
+        renderCategoryOptions();
+        renderPlayerOptions();
+        renderTeamOptions();
+        autoSave();
+    }
+
     function initData() {
-        const p1 = 'p1', p2 = 'p2';
+        const p1 = 'p1';
         data = {
             players: {},
-            categories: [],
+            categories: getDefaultCategories().map((label, index) => ({ key: 'c' + (index + 1), label })),
             periods: [
-                { key: p1, label: '1-10\'' },
-                { key: p2, label: '11-20\'' }
+                { key: p1, label: '1-10' }
             ],
             activePeriod: p1,
             nextPlayerId: 1,
@@ -973,6 +1118,54 @@
         document.addEventListener('mouseout', handleHoverOut);
     }
 
+    function renderTeamOptions() {
+        const options = new Set(getDefaultTeams());
+        for (const id in data.players) {
+            const team = String(data.players[id].team || '').trim();
+            if (team && team !== '—') options.add(team);
+        }
+
+        const datalist = document.getElementById('teamOptions');
+        datalist.innerHTML = '';
+        options.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team;
+            datalist.appendChild(option);
+        });
+    }
+
+    function renderPlayerOptions() {
+        const options = new Set(getDefaultPlayers());
+        for (const id in data.players) {
+            const player = String(data.players[id].name || '').trim();
+            if (player) options.add(player);
+        }
+
+        const datalist = document.getElementById('playerOptions');
+        datalist.innerHTML = '';
+        options.forEach(player => {
+            const option = document.createElement('option');
+            option.value = player;
+            datalist.appendChild(option);
+        });
+    }
+
+    function renderCategoryOptions() {
+        const options = new Set(getDefaultCategories());
+        data.categories.forEach(category => {
+            const label = String(category.label || '').trim();
+            if (label) options.add(label);
+        });
+
+        const datalist = document.getElementById('categoryOptions');
+        datalist.innerHTML = '';
+        options.forEach(category => {
+            const option = document.createElement('option');
+            option.value = category;
+            datalist.appendChild(option);
+        });
+    }
+
     function handleHover(e) {
         const td = e.target.closest('td');
         if (!td) return;
@@ -1025,6 +1218,10 @@
         const active = data.activePeriod;
         const ids = Object.keys(data.players);
 
+        renderCategoryOptions();
+        renderPlayerOptions();
+        renderTeamOptions();
+
         const tabs = document.getElementById('periodTabs');
         tabs.innerHTML = periods.map(p =>
             `<span class="period-tab ${p.key === active ? 'active' : ''}" onclick="setActivePeriod('${p.key}')">
@@ -1035,13 +1232,36 @@
         const activeObj = periods.find(p => p.key === active);
         document.getElementById('activePeriodName').textContent = activeObj ? activeObj.label : '—';
 
-        if (!active || !periods.some(p => p.key === active) || ids.length === 0 || cats.length === 0) {
+        if (!active || !periods.some(p => p.key === active) || cats.length === 0) {
             let msg = 'Добавьте ';
-            if (ids.length === 0 && cats.length === 0) msg += 'игроков и показатели';
-            else if (ids.length === 0) msg += 'игроков';
-            else msg += 'показатели';
+            msg += 'показатели';
             container.innerHTML = `<div class="empty">${msg}</div>`;
             document.getElementById('totalActions').textContent = '0';
+            return;
+        }
+
+        if (ids.length === 0) {
+            const colspan = cats.length + 2;
+            container.innerHTML = `<div class="team-block">
+                <div class="team-title">
+                    <span>Команды <span class="sub">0</span></span>
+                    <span class="period-badge"><strong>${activeObj ? activeObj.label : '—'}</strong></span>
+                </div>
+                <table>
+                    <thead><tr>
+                        <th style="text-align:left;padding-left:4px;">Игрок</th>
+                        ${cats.map(c => `<th>${c.label}
+                            <span class="del-cat" onclick="removeCategory('${c.key}')">✕</span>
+                        </th>`).join('')}
+                        <th>Всего</th>
+                    </tr></thead>
+                    <tbody>
+                        <tr><td class="empty" colspan="${colspan}">Добавьте игроков</td></tr>
+                    </tbody>
+                </table>
+            </div>`;
+            document.getElementById('totalActions').textContent = '0';
+            setupHoverEffects();
             return;
         }
 

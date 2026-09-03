@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'ttd_minimal_data';
 const DEFAULT_SETTINGS_KEY = 'ttd_default_settings';
+const RECORDING_ENABLED_KEY = 'ttd_recording_enabled';
 
 const DEFAULT_ACTION_KEYS = { plus: '+', minus: '-', removePlus: '/', removeMinus: '*' };
 
@@ -76,6 +77,11 @@ function applyStatAction(data, playerId, periodKey, categoryKey, action) {
 }
 
 async function handleVideoShortcut(message) {
+  const recordingEnabled = await getStored(RECORDING_ENABLED_KEY);
+  if (recordingEnabled !== true) {
+    return { ok: false, handled: false, nextBuffer: '', reason: 'Горячие клавиши неактивны' };
+  }
+
   const data = await getStored(STORAGE_KEY);
   if (!data?.players || !Array.isArray(data.categories) || !Array.isArray(data.periods) || !data.activePeriod) {
     return { ok: false, reason: 'Откройте страницу анализа и настройте игроков' };
@@ -165,11 +171,21 @@ async function handleVideoShortcut(message) {
   return { ok: false, nextBuffer: '' };
 }
 
-chrome.action.onClicked.addListener(() => {
-  chrome.tabs.create({
-    url: chrome.runtime.getURL('football-analyze.html')
+async function updateActionBadge() {
+  const enabled = (await getStored(RECORDING_ENABLED_KEY)) === true;
+  await chrome.action.setBadgeText({ text: enabled ? 'ON' : 'OFF' });
+  await chrome.action.setBadgeBackgroundColor({ color: enabled ? '#168447' : '#777777' });
+  await chrome.action.setTitle({
+    title: enabled ? 'Plus Minus Football — горячие клавиши активны' : 'Plus Minus Football — горячие клавиши неактивны'
   });
+}
+
+chrome.runtime.onInstalled.addListener(updateActionBadge);
+chrome.runtime.onStartup.addListener(updateActionBadge);
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === 'local' && changes[RECORDING_ENABLED_KEY]) updateActionBadge();
 });
+updateActionBadge();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type !== 'ttd-video-shortcut') return false;

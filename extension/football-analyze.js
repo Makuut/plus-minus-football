@@ -1166,6 +1166,10 @@ const STORAGE_KEY = 'ttd_minimal_data';
     function resetAll() {
         if (!confirm('Удалить всё (всех игроков, показатели и статистику)?')) return;
         initData();
+        resetShortcutBuffer();
+        const lastActionStatus = document.getElementById('lastActionStatus');
+        lastActionStatus.textContent = '—';
+        lastActionStatus.classList.remove('save-error');
         renderAll();
         autoSave();
     }

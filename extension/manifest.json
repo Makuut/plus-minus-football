@@ -11,7 +11,8 @@
     "<all_urls>"
   ],
   "action": {
-    "default_title": "Открыть анализ футбола"
+    "default_title": "Plus Minus Football",
+    "default_popup": "popup.html"
   },
   "background": {
     "service_worker": "background.js"

@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'ttd_minimal_data';
     const DEFAULT_SETTINGS_KEY = 'ttd_default_settings';
+    const extensionStorage = typeof chrome !== 'undefined' ? chrome.storage?.local || null : null;
 
     const PLAYER_COLORS = [
         '#e74c3c', '#2980b9', '#27ae60', '#f39c12', '#8e44ad',
@@ -32,6 +33,7 @@ const STORAGE_KEY = 'ttd_minimal_data';
     let activeDropdown = null;
     let shortcutBuffer = '';
     let shortcutTimer = null;
+    let defaultSettingsCache = {};
 
     function openConfirm(title, message, confirmText, action) {
         document.getElementById('confirmTitle').textContent = title;
@@ -281,18 +283,12 @@ const STORAGE_KEY = 'ttd_minimal_data';
     }
 
     function loadDefaultSettings() {
-        try {
-            const raw = localStorage.getItem(DEFAULT_SETTINGS_KEY);
-            if (!raw) return {};
-            const parsed = JSON.parse(raw);
-            return parsed && typeof parsed === 'object' ? parsed : {};
-        } catch (e) {
-            return {};
-        }
+        return defaultSettingsCache && typeof defaultSettingsCache === 'object' ? defaultSettingsCache : {};
     }
 
     function saveDefaultSettings(settings) {
-        localStorage.setItem(DEFAULT_SETTINGS_KEY, JSON.stringify(settings));
+        defaultSettingsCache = settings && typeof settings === 'object' ? settings : {};
+        saveStorageValue(DEFAULT_SETTINGS_KEY, defaultSettingsCache);
     }
 
     function getDefaultCategories() {
@@ -455,26 +451,82 @@ const STORAGE_KEY = 'ttd_minimal_data';
         });
     }
 
-    function loadFromStorage() {
-        const s = localStorage.getItem(STORAGE_KEY);
-        if (s) {
-            try {
-                const p = JSON.parse(s);
-                if (p.players && p.categories && p.periods && p.activePeriod) {
-                    data = p;
-                    if (!data.colorIndex) data.colorIndex = 0;
-                    assignColorsToAllPlayers();
-                    ensureShortcuts();
-                    return true;
-                }
-            } catch (e) {}
+    async function loadStorageValue(key) {
+        if (extensionStorage) {
+            const result = await extensionStorage.get(key);
+            return result[key];
+        }
+
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        try {
+            return JSON.parse(raw);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function saveStorageValue(key, value) {
+        if (extensionStorage) {
+            return extensionStorage.set({ [key]: value });
+        }
+
+        localStorage.setItem(key, JSON.stringify(value));
+        return Promise.resolve();
+    }
+
+    async function migrateLocalStorageData() {
+        if (!extensionStorage) return;
+
+        const values = await extensionStorage.get([STORAGE_KEY, DEFAULT_SETTINGS_KEY]);
+        const migrated = {};
+
+        if (!values[STORAGE_KEY]) {
+            const rawData = localStorage.getItem(STORAGE_KEY);
+            if (rawData) {
+                try {
+                    migrated[STORAGE_KEY] = JSON.parse(rawData);
+                } catch (e) {}
+            }
+        }
+
+        if (!values[DEFAULT_SETTINGS_KEY]) {
+            const rawSettings = localStorage.getItem(DEFAULT_SETTINGS_KEY);
+            if (rawSettings) {
+                try {
+                    migrated[DEFAULT_SETTINGS_KEY] = JSON.parse(rawSettings);
+                } catch (e) {}
+            }
+        }
+
+        if (Object.keys(migrated).length > 0) {
+            await extensionStorage.set(migrated);
+        }
+    }
+
+    function applyLoadedData(p) {
+        if (p?.players && p.categories && p.periods && p.activePeriod) {
+            data = p;
+            if (!data.colorIndex) data.colorIndex = 0;
+            assignColorsToAllPlayers();
+            ensureShortcuts();
+            return true;
         }
         return false;
     }
 
-    function saveToStorage() {
+    async function loadFromStorage() {
+        return applyLoadedData(await loadStorageValue(STORAGE_KEY));
+    }
+
+    async function loadSettingsFromStorage() {
+        const settings = await loadStorageValue(DEFAULT_SETTINGS_KEY);
+        defaultSettingsCache = settings && typeof settings === 'object' ? settings : {};
+    }
+
+    async function saveToStorage() {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            await saveStorageValue(STORAGE_KEY, data);
             document.getElementById('saveStatus').textContent = 'сохранено';
             document.getElementById('saveStatus').style.color = '#22a65a';
             document.getElementById('lastActionStatus').classList.remove('save-error');
@@ -1496,15 +1548,42 @@ function exportData() {
             }
         });
     }
-    setupClickActions();
+    async function initializeApp() {
+        setupClickActions();
+        await migrateLocalStorageData();
+        await loadSettingsFromStorage();
 
-    const loaded = loadFromStorage();
-    if (!loaded) initData();
-    renderAll();
-    if (!loaded) saveToStorage();
+        const loaded = await loadFromStorage();
+        if (!loaded) initData();
+        renderAll();
+        if (!loaded) saveToStorage();
+
+        if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+            chrome.storage.onChanged.addListener((changes, areaName) => {
+                if (areaName !== 'local') return;
+
+                if (changes[DEFAULT_SETTINGS_KEY]) {
+                    defaultSettingsCache = changes[DEFAULT_SETTINGS_KEY].newValue || {};
+                }
+
+                if (changes[STORAGE_KEY] && applyLoadedData(changes[STORAGE_KEY].newValue)) {
+                    renderAll();
+                }
+            });
+        }
+    }
+
+    initializeApp();
 
     window.addEventListener('beforeunload', () => saveToStorage());
-    document.addEventListener('visibilitychange', () => { if (document.hidden) saveToStorage(); });
+    document.addEventListener('visibilitychange', async () => {
+        if (document.hidden) {
+            saveToStorage();
+            return;
+        }
+
+        if (await loadFromStorage()) renderAll();
+    });
 
     document.getElementById('playerNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
     document.getElementById('playerNameInput').addEventListener('input', updatePlayerShortcutInput);

@@ -20,10 +20,9 @@
         }
 
         .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: 1fr minmax(160px, auto) 1fr;
+            align-items: center;
             gap: 8px 16px;
             margin-bottom: 20px;
             padding-bottom: 12px;
@@ -42,6 +41,30 @@
             background: #eaf9ed;
             padding: 2px 14px;
             border-radius: 20px;
+            display: none;
+        }
+        .current-action-status,
+        .previous-action-status {
+            font-size: 16px;
+            color: #888;
+            font-variant-numeric: tabular-nums;
+            min-height: 22px;
+        }
+        .current-action-status {
+            text-align: center;
+            color: #222;
+            font-weight: 600;
+        }
+        .previous-action-status {
+            text-align: right;
+        }
+        .previous-action-status strong {
+            color: #222;
+            font-weight: 600;
+        }
+        .save-error {
+            color: #b33 !important;
+            font-weight: 600;
         }
 
         .controls {
@@ -556,9 +579,42 @@
             outline: none;
             border-color: #888;
         }
-
+        .settings-field input {
+            width: 80px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .settings-field input:focus {
+            outline: none;
+            border-color: #888;
+        }
+        .settings-action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 16px;
+            align-items: end;
+        }
+        .settings-action-row .settings-field {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .settings-action-row .settings-field label {
+            font-weight: 500;
+            color: #555;
+        }
+        .hotkey {
+            color: #888;
+            font-weight: 400;
+            font-size: 12px;
+        }
         @media (max-width: 700px) {
             body { padding: 12px; }
+            .header { grid-template-columns: 1fr; align-items: start; }
+            .current-action-status, .previous-action-status { text-align: left; }
             .controls input { min-width: 80px; font-size: 12px; }
             .btn { font-size: 12px; padding: 4px 12px; }
             .btn-act { padding: 3px 7px; font-size: 12px; min-width: 28px; }
@@ -571,6 +627,7 @@
             .confirm-box { padding: 20px; }
             .dropdown-menu { min-width: 150px; right: -10px; }
             .settings-field textarea { min-height: 90px; }
+            .settings-action-row { align-items: start; }
         }
     </style>
 </head>
@@ -580,22 +637,24 @@
 
     <div class="header">
         <h1>ТТД</h1>
-        <div>
-            <span class="status" id="saveStatus">сохранено</span>
-        </div>
+        <div class="current-action-status" id="shortcutStatus">—</div>
+        <div class="previous-action-status" id="lastActionStatus">—</div>
+        <span class="status" id="saveStatus">сохранено</span>
     </div>
 
     <div class="controls">
-        <input type="text" id="playerNameInput" list="playerOptions" placeholder="Игрок">
-        <datalist id="playerOptions"></datalist>
         <input type="text" id="teamNameInput" list="teamOptions" placeholder="Команда" style="min-width:100px;">
         <datalist id="teamOptions"></datalist>
+        <input type="text" id="playerNameInput" list="playerOptions" placeholder="Игрок">
+        <datalist id="playerOptions"></datalist>
+        <input type="text" id="playerKeyInput" maxlength="1" placeholder="клав." style="min-width:54px;width:54px;">
         <button class="btn btn-add" onclick="addPlayer()">+ игрок</button>
 
         <span class="sep">|</span>
 
         <input type="text" id="categoryNameInput" list="categoryOptions" placeholder="Показатель" style="min-width:100px;">
         <datalist id="categoryOptions"></datalist>
+        <input type="text" id="categoryKeyInput" maxlength="1" placeholder="клав." style="min-width:54px;width:54px;">
         <button class="btn btn-add" onclick="addCategory()">+ показатель</button>
 
         <span class="sep">|</span>
@@ -645,7 +704,7 @@
         <div class="settings-form">
             <div class="settings-field">
                 <label for="defaultCategoriesInput">Показатели</label>
-                <textarea id="defaultCategoriesInput" placeholder="Один показатель на строку"></textarea>
+                <textarea id="defaultCategoriesInput" placeholder="Один показатель на строку: ПАС | q"></textarea>
             </div>
             <div class="settings-field">
                 <label for="defaultTeamsInput">Команды</label>
@@ -653,7 +712,33 @@
             </div>
             <div class="settings-field">
                 <label for="defaultPlayersInput">Игроки</label>
-                <textarea id="defaultPlayersInput" placeholder="Один игрок на строку"></textarea>
+                <textarea id="defaultPlayersInput" placeholder="Один игрок на строку: Максим | 1"></textarea>
+            </div>
+            <div class="settings-field">
+                <label>Положительное действие</label>
+                <div class="settings-action-row">
+                    <div class="settings-field">
+                        <label for="positiveKeyInput">Добавить</label>
+                        <input type="text" id="positiveKeyInput" maxlength="1" placeholder="+">
+                    </div>
+                    <div class="settings-field">
+                        <label for="removePositiveKeyInput">Удалить</label>
+                        <input type="text" id="removePositiveKeyInput" maxlength="1" placeholder="/">
+                    </div>
+                </div>
+            </div>
+            <div class="settings-field">
+                <label>Отрицательное действие</label>
+                <div class="settings-action-row">
+                    <div class="settings-field">
+                        <label for="negativeKeyInput">Добавить</label>
+                        <input type="text" id="negativeKeyInput" maxlength="1" placeholder="-">
+                    </div>
+                    <div class="settings-field">
+                        <label for="removeNegativeKeyInput">Удалить</label>
+                        <input type="text" id="removeNegativeKeyInput" maxlength="1" placeholder="*">
+                    </div>
+                </div>
             </div>
         </div>
         <div class="btn-row">
@@ -675,7 +760,15 @@
 
     const DEFAULT_CATEGORIES = ['ПАС', 'УДАР', 'ПЕРЕХВАТ', 'ОТБОР', 'ОБВОДКА'];
     const DEFAULT_TEAMS = ['Зеленые', 'Оранжевые'];
-    const DEFAULT_PLAYERS = ['РусланЗ', 'Влад', 'Максим', 'РусланС', 'Ильдар', 'Алмаз', 'Рома', 'Ленар', 'Паша', 'Дима', 'Ильшат', 'Альмир', 'Радик', 'Айнур', 'Ирек'];
+    const DEFAULT_PLAYERS = ['Ильдар', 'РусланС', 'Айнур', 'Влад', 'Алмаз', 'Максим', 'РусланЗ', 'Ирек', 'Дима', 'Паша'];
+    const DEFAULT_CATEGORY_KEYS = { 'ПАС': 'q', 'УДАР': 'w', 'ПЕРЕХВАТ': 'e', 'ОТБОР': 'r', 'ОБВОДКА': 't' };
+    const DEFAULT_PLAYER_KEYS = {
+        'Ильдар': '1', 'РусланС': '2', 'Айнур': '3', 'Влад': '4', 'Алмаз': '5',
+        'Максим': '6', 'РусланЗ': '7', 'Ирек': '8', 'Дима': '9', 'Паша': '0'
+    };
+    const PLAYER_KEY_POOL = '1234567890asdfghjklzxcvbnm'.split('');
+    const CATEGORY_KEY_POOL = 'qwertyuiop[]'.split('');
+    const DEFAULT_ACTION_KEYS = { plus: '+', minus: '-', removePlus: '/', removeMinus: '*' };
 
     let data = {
         players: {},
@@ -688,6 +781,8 @@
 
     let pendingAction = null;
     let activeDropdown = null;
+    let shortcutBuffer = '';
+    let shortcutTimer = null;
 
     function openConfirm(title, message, confirmText, action) {
         document.getElementById('confirmTitle').textContent = title;
@@ -733,6 +828,7 @@
                 const ck = pendingAction.categoryKey;
                 if (data.players[pid] && data.players[pid].stats[pk]) {
                     data.players[pid].stats[pk][ck] = '';
+                    setLastActionStatus(pid, ck, 'очищено');
                 }
                 break;
             case 'removeLastPlus':
@@ -745,6 +841,7 @@
                     if (lastPlus !== -1) {
                         current = current.slice(0, lastPlus) + current.slice(lastPlus + 1);
                         data.players[pid3].stats[pk3][ck3] = current;
+                    setLastActionStatus(pid3, ck3, 'уд +');
                     }
                 }
                 break;
@@ -758,6 +855,7 @@
                     if (lastMinus !== -1) {
                         current = current.slice(0, lastMinus) + current.slice(lastMinus + 1);
                         data.players[pid4].stats[pk4][ck4] = current;
+                        setLastActionStatus(pid4, ck4, 'уд -');
                     }
                 }
                 break;
@@ -778,7 +876,10 @@
             closeConfirm();
             closeDefaultsSettings();
             closeAllDropdowns();
+            resetShortcutBuffer();
+            return;
         }
+        handleShortcutKey(e);
     });
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.dropdown')) {
@@ -822,6 +923,114 @@
             });
     }
 
+    function normalizeShortcutKey(value) {
+        return String(value || '').trim().slice(0, 1).toLowerCase();
+    }
+
+    function normalizeDefaultShortcutList(text, forceUppercase = false) {
+        const seen = new Set();
+        return String(text || '')
+            .split(/\r?\n/)
+            .map(line => line.trim())
+            .filter(Boolean)
+            .map(line => {
+                const parts = line.split('|');
+                const rawName = parts[0].trim();
+                const name = forceUppercase ? rawName.toUpperCase() : rawName;
+                const shortcut = normalizeShortcutKey(parts.slice(1).join('|'));
+                return { name, shortcut };
+            })
+            .filter(item => {
+                if (!item.name) return false;
+                const key = item.name.toLowerCase();
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+    }
+
+    function makeDefaultShortcutItems(labels, shortcutMap, forceUppercase = false) {
+        return labels.map(label => {
+            const name = forceUppercase ? label.toUpperCase() : label;
+            return { name, shortcut: normalizeShortcutKey(shortcutMap[name] || '') };
+        });
+    }
+
+    function normalizeSavedShortcutItems(items, fallbackLabels, shortcutMap, forceUppercase = false) {
+        if (!Array.isArray(items)) return makeDefaultShortcutItems(fallbackLabels, shortcutMap, forceUppercase);
+        return items
+            .map(item => {
+                if (typeof item === 'string') {
+                    const name = forceUppercase ? item.trim().toUpperCase() : item.trim();
+                    return { name, shortcut: normalizeShortcutKey(shortcutMap[name] || '') };
+                }
+                const rawName = String(item?.name || item?.label || '').trim();
+                const name = forceUppercase ? rawName.toUpperCase() : rawName;
+                return { name, shortcut: normalizeShortcutKey(item?.shortcut || shortcutMap[name] || '') };
+            })
+            .filter(item => item.name);
+    }
+
+    function formatShortcutItems(items) {
+        return items.map(item => item.shortcut ? `${item.name} | ${item.shortcut}` : item.name).join('\n');
+    }
+
+    function getUsedPlayerShortcuts(exceptId = null) {
+        const used = new Set();
+        for (const id in data.players) {
+            if (String(id) === String(exceptId)) continue;
+            const shortcut = normalizeShortcutKey(data.players[id].shortcut);
+            if (shortcut) used.add(shortcut);
+        }
+        return used;
+    }
+
+    function getUsedCategoryShortcuts(exceptKey = null) {
+        const used = new Set();
+        data.categories.forEach(category => {
+            if (category.key === exceptKey) return;
+            const shortcut = normalizeShortcutKey(category.shortcut);
+            if (shortcut) used.add(shortcut);
+        });
+        return used;
+    }
+
+    function getNextAvailableShortcut(pool, used) {
+        return pool.find(key => !used.has(key)) || '';
+    }
+
+    function getDefaultShortcutForName(items, name) {
+        const found = items.find(item => item.name.toLowerCase() === String(name || '').trim().toLowerCase());
+        return found ? found.shortcut : '';
+    }
+
+    function applyDefaultShortcutsToCurrentData() {
+        const defaultPlayers = getDefaultPlayerItems();
+        const usedPlayerShortcuts = new Set();
+        Object.keys(data.players).sort((a, b) => parseInt(a) - parseInt(b)).forEach(id => {
+            const player = data.players[id];
+            const defaultShortcut = getDefaultShortcutForName(defaultPlayers, player.name);
+            let shortcut = defaultShortcut || normalizeShortcutKey(player.shortcut);
+            if (!shortcut || usedPlayerShortcuts.has(shortcut)) {
+                shortcut = getNextAvailableShortcut(PLAYER_KEY_POOL, usedPlayerShortcuts);
+            }
+            player.shortcut = shortcut;
+            if (shortcut) usedPlayerShortcuts.add(shortcut);
+        });
+
+        const defaultCategories = getDefaultCategoryItems();
+        const usedCategoryShortcuts = new Set();
+        data.categories.forEach(category => {
+            const defaultShortcut = getDefaultShortcutForName(defaultCategories, category.label);
+            let shortcut = defaultShortcut || normalizeShortcutKey(category.shortcut);
+            if (!shortcut || usedCategoryShortcuts.has(shortcut)) {
+                shortcut = getNextAvailableShortcut(CATEGORY_KEY_POOL, usedCategoryShortcuts);
+            }
+            category.shortcut = shortcut;
+            if (shortcut) usedCategoryShortcuts.add(shortcut);
+        });
+    }
+
     function loadDefaultSettings() {
         try {
             const raw = localStorage.getItem(DEFAULT_SETTINGS_KEY);
@@ -838,10 +1047,12 @@
     }
 
     function getDefaultCategories() {
+        return getDefaultCategoryItems().map(item => item.name);
+    }
+
+    function getDefaultCategoryItems() {
         const settings = loadDefaultSettings();
-        return Array.isArray(settings.categories) && settings.categories.length > 0
-            ? settings.categories
-            : DEFAULT_CATEGORIES;
+        return normalizeSavedShortcutItems(settings.categories, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_KEYS, true);
     }
 
     function getDefaultTeams() {
@@ -852,16 +1063,33 @@
     }
 
     function getDefaultPlayers() {
+        return getDefaultPlayerItems().map(item => item.name);
+    }
+
+    function getDefaultPlayerItems() {
         const settings = loadDefaultSettings();
-        return Array.isArray(settings.players)
-            ? settings.players
-            : DEFAULT_PLAYERS;
+        return normalizeSavedShortcutItems(settings.players, DEFAULT_PLAYERS, DEFAULT_PLAYER_KEYS);
+    }
+
+    function getActionKeys() {
+        const settings = loadDefaultSettings();
+        return {
+            plus: normalizeShortcutKey(settings.actionKeys?.plus || DEFAULT_ACTION_KEYS.plus),
+            minus: normalizeShortcutKey(settings.actionKeys?.minus || DEFAULT_ACTION_KEYS.minus),
+            removePlus: normalizeShortcutKey(settings.actionKeys?.removePlus || DEFAULT_ACTION_KEYS.removePlus),
+            removeMinus: normalizeShortcutKey(settings.actionKeys?.removeMinus || DEFAULT_ACTION_KEYS.removeMinus)
+        };
     }
 
     function openDefaultsSettings() {
-        document.getElementById('defaultCategoriesInput').value = getDefaultCategories().join('\n');
+        const actionKeys = getActionKeys();
+        document.getElementById('defaultCategoriesInput').value = formatShortcutItems(getDefaultCategoryItems());
         document.getElementById('defaultTeamsInput').value = getDefaultTeams().join('\n');
-        document.getElementById('defaultPlayersInput').value = getDefaultPlayers().join('\n');
+        document.getElementById('defaultPlayersInput').value = formatShortcutItems(getDefaultPlayerItems());
+        document.getElementById('positiveKeyInput').value = actionKeys.plus;
+        document.getElementById('negativeKeyInput').value = actionKeys.minus;
+        document.getElementById('removePositiveKeyInput').value = actionKeys.removePlus;
+        document.getElementById('removeNegativeKeyInput').value = actionKeys.removeMinus;
         document.getElementById('settingsOverlay').classList.add('active');
     }
 
@@ -870,13 +1098,23 @@
     }
 
     function saveDefaultsSettings() {
-        const categories = normalizeDefaultList(document.getElementById('defaultCategoriesInput').value, true);
+        const categories = normalizeDefaultShortcutList(document.getElementById('defaultCategoriesInput').value, true);
         const teams = normalizeDefaultList(document.getElementById('defaultTeamsInput').value);
-        const players = normalizeDefaultList(document.getElementById('defaultPlayersInput').value);
+        const players = normalizeDefaultShortcutList(document.getElementById('defaultPlayersInput').value);
+        const actionKeys = {
+            plus: normalizeShortcutKey(document.getElementById('positiveKeyInput').value) || DEFAULT_ACTION_KEYS.plus,
+            minus: normalizeShortcutKey(document.getElementById('negativeKeyInput').value) || DEFAULT_ACTION_KEYS.minus,
+            removePlus: normalizeShortcutKey(document.getElementById('removePositiveKeyInput').value) || DEFAULT_ACTION_KEYS.removePlus,
+            removeMinus: normalizeShortcutKey(document.getElementById('removeNegativeKeyInput').value) || DEFAULT_ACTION_KEYS.removeMinus
+        };
         if (categories.length === 0) return alert('Добавьте хотя бы один показатель по умолчанию');
         if (teams.length === 0) return alert('Добавьте хотя бы одну команду по умолчанию');
+        if (new Set(Object.values(actionKeys)).size !== Object.values(actionKeys).length) {
+            return alert('Клавиши действий должны отличаться друг от друга');
+        }
 
-        saveDefaultSettings({ categories, teams, players });
+        saveDefaultSettings({ categories, teams, players, actionKeys });
+        applyDefaultShortcutsToCurrentData();
         closeDefaultsSettings();
         renderCategoryOptions();
         renderPlayerOptions();
@@ -888,7 +1126,7 @@
         const p1 = 'p1';
         data = {
             players: {},
-            categories: getDefaultCategories().map((label, index) => ({ key: 'c' + (index + 1), label })),
+            categories: getDefaultCategoryItems().map((item, index) => ({ key: 'c' + (index + 1), label: item.name, shortcut: item.shortcut })),
             periods: [
                 { key: p1, label: '1-10' }
             ],
@@ -904,13 +1142,19 @@
         return color;
     }
 
-    function addPlayerData(name, team) {
+    function addPlayerData(name, team, shortcut = '') {
         const id = data.nextPlayerId++;
         const color = getNextColor();
+        const defaultShortcut = getDefaultShortcutForName(getDefaultPlayerItems(), name);
+        const usedShortcuts = getUsedPlayerShortcuts();
+        const preferredShortcut = normalizeShortcutKey(shortcut) || defaultShortcut;
         data.players[id] = {
             name: name,
             team: team || '—',
             color: color,
+            shortcut: preferredShortcut && !usedShortcuts.has(preferredShortcut)
+                ? preferredShortcut
+                : getNextAvailableShortcut(PLAYER_KEY_POOL, usedShortcuts),
             stats: {}
         };
         data.periods.forEach(p => {
@@ -929,6 +1173,39 @@
         data.colorIndex = ids.length;
     }
 
+    function ensureShortcuts() {
+        const defaultPlayers = getDefaultPlayerItems();
+        const usedPlayerShortcuts = new Set();
+        Object.keys(data.players).sort((a, b) => parseInt(a) - parseInt(b)).forEach(id => {
+            const player = data.players[id];
+            let shortcut = normalizeShortcutKey(player.shortcut);
+            const defaultShortcut = getDefaultShortcutForName(defaultPlayers, player.name);
+            if (!shortcut && defaultShortcut && !usedPlayerShortcuts.has(defaultShortcut)) {
+                shortcut = defaultShortcut;
+            }
+            if (!shortcut || usedPlayerShortcuts.has(shortcut)) {
+                shortcut = getNextAvailableShortcut(PLAYER_KEY_POOL, usedPlayerShortcuts);
+            }
+            player.shortcut = shortcut;
+            if (shortcut) usedPlayerShortcuts.add(shortcut);
+        });
+
+        const defaultCategories = getDefaultCategoryItems();
+        const usedCategoryShortcuts = new Set();
+        data.categories.forEach(category => {
+            let shortcut = normalizeShortcutKey(category.shortcut);
+            const defaultShortcut = getDefaultShortcutForName(defaultCategories, category.label);
+            if (!shortcut && defaultShortcut && !usedCategoryShortcuts.has(defaultShortcut)) {
+                shortcut = defaultShortcut;
+            }
+            if (!shortcut || usedCategoryShortcuts.has(shortcut)) {
+                shortcut = getNextAvailableShortcut(CATEGORY_KEY_POOL, usedCategoryShortcuts);
+            }
+            category.shortcut = shortcut;
+            if (shortcut) usedCategoryShortcuts.add(shortcut);
+        });
+    }
+
     function loadFromStorage() {
         const s = localStorage.getItem(STORAGE_KEY);
         if (s) {
@@ -938,6 +1215,7 @@
                     data = p;
                     if (!data.colorIndex) data.colorIndex = 0;
                     assignColorsToAllPlayers();
+                    ensureShortcuts();
                     return true;
                 }
             } catch (e) {}
@@ -950,9 +1228,13 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             document.getElementById('saveStatus').textContent = 'сохранено';
             document.getElementById('saveStatus').style.color = '#22a65a';
+            document.getElementById('lastActionStatus').classList.remove('save-error');
         } catch (e) {
             document.getElementById('saveStatus').textContent = 'ошибка';
             document.getElementById('saveStatus').style.color = '#b33';
+            const status = document.getElementById('lastActionStatus');
+            status.classList.add('save-error');
+            status.textContent = 'ошибка сохранения';
         }
     }
 
@@ -998,12 +1280,18 @@
     function addPlayer() {
         const name = document.getElementById('playerNameInput').value.trim();
         const team = document.getElementById('teamNameInput').value.trim() || '—';
+        const shortcutInput = document.getElementById('playerKeyInput');
+        const defaultShortcut = getDefaultShortcutForName(getDefaultPlayerItems(), name);
+        const shortcut = normalizeShortcutKey(shortcutInput.value) || defaultShortcut;
         if (!name) return alert('Введите имя');
         for (const id in data.players) {
             if (data.players[id].name === name) return alert('Такой игрок уже есть');
         }
-        addPlayerData(name, team);
+        if (!shortcut) return alert('Укажите клавишу для игрока');
+        if (getUsedPlayerShortcuts().has(shortcut)) return alert('Эта клавиша игрока уже используется');
+        addPlayerData(name, team, shortcut);
         document.getElementById('playerNameInput').value = '';
+        shortcutInput.value = '';
         document.getElementById('teamNameInput').value = '';
         renderAll();
         autoSave();
@@ -1021,15 +1309,25 @@
 
     function addCategory() {
         const input = document.getElementById('categoryNameInput');
+        const shortcutInput = document.getElementById('categoryKeyInput');
         const label = input.value.trim().toUpperCase();
+        const defaultShortcut = getDefaultShortcutForName(getDefaultCategoryItems(), label);
+        const shortcut = normalizeShortcutKey(shortcutInput.value) || defaultShortcut;
         if (!label) return alert('Введите название');
         if (data.categories.some(c => c.label === label)) return alert('Уже есть');
+        if (!shortcut) return alert('Укажите клавишу для показателя');
+        if (getUsedCategoryShortcuts().has(shortcut)) return alert('Эта клавиша показателя уже используется');
         const key = 'c' + Date.now();
-        data.categories.push({ key, label });
+        data.categories.push({
+            key,
+            label,
+            shortcut
+        });
         for (const id in data.players) {
             data.periods.forEach(p => { data.players[id].stats[p.key][key] = ''; });
         }
         input.value = '';
+        shortcutInput.value = '';
         renderAll();
         autoSave();
     }
@@ -1051,8 +1349,160 @@
         if (action === '+') val = current + '+';
         else if (action === '-') val = current + '-';
         data.players[playerId].stats[periodKey][categoryKey] = val;
+        setLastActionStatus(playerId, categoryKey, action === '+' ? 'доб +' : 'доб -');
         renderAll();
         autoSave();
+    }
+
+    function removeLastActionDirect(playerId, periodKey, categoryKey, action) {
+        if (!data.players[playerId] || !data.players[playerId].stats[periodKey]) return false;
+        let current = data.players[playerId].stats[periodKey][categoryKey] || '';
+        const lastIndex = current.lastIndexOf(action);
+        if (lastIndex === -1) return false;
+
+        current = current.slice(0, lastIndex) + current.slice(lastIndex + 1);
+        data.players[playerId].stats[periodKey][categoryKey] = current;
+        setLastActionStatus(playerId, categoryKey, action === '+' ? 'уд +' : 'уд -');
+        renderAll();
+        autoSave();
+        return true;
+    }
+
+    function setLastActionStatus(playerId, categoryKey, actionLabel) {
+        const player = data.players[playerId];
+        const category = data.categories.find(c => c.key === categoryKey);
+        const playerName = player?.name || 'игрок';
+        const playerShortcut = normalizeShortcutKey(player?.shortcut);
+        const categoryLabel = category?.label || 'показатель';
+        const categoryShortcut = normalizeShortcutKey(category?.shortcut);
+        const playerPart = playerShortcut ? `${playerName} (${playerShortcut})` : playerName;
+        const categoryPart = categoryShortcut ? `${categoryLabel} (${categoryShortcut})` : categoryLabel;
+        const status = document.getElementById('lastActionStatus');
+        if (status) {
+            status.classList.remove('save-error');
+            status.innerHTML = `<strong>${playerPart}</strong> | <strong>${categoryPart}</strong> | <strong>${actionLabel}</strong>`;
+        }
+    }
+
+    function resetShortcutBuffer() {
+        shortcutBuffer = '';
+        clearTimeout(shortcutTimer);
+        shortcutTimer = null;
+        const status = document.getElementById('shortcutStatus');
+        if (status) status.textContent = '—';
+    }
+
+    function setShortcutBuffer(value, context = {}) {
+        shortcutBuffer = value;
+        clearTimeout(shortcutTimer);
+        shortcutTimer = setTimeout(resetShortcutBuffer, 1500);
+        const status = document.getElementById('shortcutStatus');
+        if (!status) return;
+        if (!shortcutBuffer) {
+            status.textContent = '—';
+            return;
+        }
+
+        const playerName = context.player ? context.player.name : null;
+        const playerShortcut = context.player ? normalizeShortcutKey(context.player.shortcut) : '';
+        const categoryLabel = context.category ? context.category.label : null;
+        const categoryShortcut = context.category ? normalizeShortcutKey(context.category.shortcut) : '';
+
+        if (playerName && categoryLabel) {
+            status.textContent = `${playerName} (${playerShortcut}) | ${categoryLabel} (${categoryShortcut})`;
+        } else if (playerName) {
+            status.textContent = `${playerName} (${playerShortcut})`;
+        } else {
+            status.textContent = shortcutBuffer;
+        }
+    }
+
+    function isTypingTarget(target) {
+        return Boolean(target.closest('input, textarea, select, button'));
+    }
+
+    function handleShortcutKey(event) {
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
+        if (isTypingTarget(event.target)) return;
+        if (document.getElementById('confirmOverlay').classList.contains('active')) return;
+        if (document.getElementById('settingsOverlay').classList.contains('active')) return;
+
+        const rawKey = String(event.key || '');
+        if (rawKey.length !== 1) return;
+        const pressedKey = normalizeShortcutKey(rawKey);
+        if (!pressedKey) return;
+
+        ensureShortcuts();
+
+        const playersByKey = {};
+        for (const id in data.players) {
+            const shortcut = normalizeShortcutKey(data.players[id].shortcut);
+            if (shortcut && !playersByKey[shortcut]) playersByKey[shortcut] = id;
+        }
+
+        const categoriesByKey = {};
+        data.categories.forEach(category => {
+            const shortcut = normalizeShortcutKey(category.shortcut);
+            if (shortcut && !categoriesByKey[shortcut]) categoriesByKey[shortcut] = category.key;
+        });
+
+        const actionKeys = getActionKeys();
+        const actionByKey = {};
+        actionByKey[actionKeys.plus] = '+';
+        actionByKey[actionKeys.minus] = '-';
+        actionByKey[actionKeys.removePlus] = 'removePlus';
+        actionByKey[actionKeys.removeMinus] = 'removeMinus';
+
+        if (shortcutBuffer.length === 0) {
+            if (!playersByKey[pressedKey]) return;
+            event.preventDefault();
+            setShortcutBuffer(pressedKey, { player: data.players[playersByKey[pressedKey]] });
+            return;
+        }
+
+        if (shortcutBuffer.length === 1) {
+            if (categoriesByKey[pressedKey]) {
+                event.preventDefault();
+                setShortcutBuffer(shortcutBuffer + pressedKey, {
+                    player: data.players[playersByKey[shortcutBuffer[0]]],
+                    category: data.categories.find(category => category.key === categoriesByKey[pressedKey])
+                });
+                return;
+            }
+            if (playersByKey[pressedKey]) {
+                event.preventDefault();
+                setShortcutBuffer(pressedKey, { player: data.players[playersByKey[pressedKey]] });
+                return;
+            }
+            resetShortcutBuffer();
+            return;
+        }
+
+        if (shortcutBuffer.length === 2) {
+            const action = actionByKey[pressedKey];
+            if (action) {
+                const playerId = playersByKey[shortcutBuffer[0]];
+                const categoryKey = categoriesByKey[shortcutBuffer[1]];
+                if (playerId && categoryKey && data.activePeriod) {
+                    event.preventDefault();
+                    resetShortcutBuffer();
+                    if (action === 'removePlus') {
+                        removeLastActionDirect(playerId, data.activePeriod, categoryKey, '+');
+                    } else if (action === 'removeMinus') {
+                        removeLastActionDirect(playerId, data.activePeriod, categoryKey, '-');
+                    } else {
+                        updateStat(playerId, data.activePeriod, categoryKey, action);
+                    }
+                    return;
+                }
+            }
+            if (playersByKey[pressedKey]) {
+                event.preventDefault();
+                setShortcutBuffer(pressedKey, { player: data.players[playersByKey[pressedKey]] });
+                return;
+            }
+            resetShortcutBuffer();
+        }
     }
 
     // ====== Дополнительные действия через меню ======
@@ -1166,6 +1616,16 @@
         });
     }
 
+    function updatePlayerShortcutInput() {
+        const name = document.getElementById('playerNameInput').value.trim();
+        document.getElementById('playerKeyInput').value = getDefaultShortcutForName(getDefaultPlayerItems(), name);
+    }
+
+    function updateCategoryShortcutInput() {
+        const label = document.getElementById('categoryNameInput').value.trim().toUpperCase();
+        document.getElementById('categoryKeyInput').value = getDefaultShortcutForName(getDefaultCategoryItems(), label);
+    }
+
     function handleHover(e) {
         const td = e.target.closest('td');
         if (!td) return;
@@ -1211,12 +1671,20 @@
         });
     }
 
+    function formatHotkey(shortcut) {
+        const key = normalizeShortcutKey(shortcut);
+        return key ? ` <span class="hotkey">(${key})</span>` : '';
+    }
+
     function renderAll() {
         const container = document.getElementById('teamsContainer');
         const cats = data.categories;
         const periods = data.periods;
         const active = data.activePeriod;
         const ids = Object.keys(data.players);
+        const actionKeys = getActionKeys();
+
+        ensureShortcuts();
 
         renderCategoryOptions();
         renderPlayerOptions();
@@ -1250,7 +1718,7 @@
                 <table>
                     <thead><tr>
                         <th style="text-align:left;padding-left:4px;">Игрок</th>
-                        ${cats.map(c => `<th>${c.label}
+                        ${cats.map(c => `<th>${c.label}${formatHotkey(c.shortcut)}
                             <span class="del-cat" onclick="removeCategory('${c.key}')">✕</span>
                         </th>`).join('')}
                         <th>Всего</th>
@@ -1297,7 +1765,7 @@
                         <th style="text-align:left;padding-left:4px;">Игрок</th>`;
 
             cats.forEach(c => {
-                html += `<th>${c.label}
+                html += `<th>${c.label}${formatHotkey(c.shortcut)}
                             <span class="del-cat" onclick="removeCategory('${c.key}')">✕</span>
                         </th>`;
             });
@@ -1310,7 +1778,7 @@
                 let rowLen = 0, rowPlus = 0;
 
                 html += `<tr><td class="player-cell">
-                            <span class="player-name" style="color:${playerColor};">${p.name}</span>
+                            <span class="player-name" style="color:${playerColor};">${p.name}</span>${formatHotkey(p.shortcut)}
                             <span class="del-player" onclick="removePlayer(${id})">✕</span>
                         </td>`;
 
@@ -1329,8 +1797,8 @@
 
                     html += `<td>
                                 <div class="btn-group">
-                                    <button class="btn-act plus" onclick="updateStat(${id},'${active}','${c.key}','+')">+</button>
-                                    <button class="btn-act minus" onclick="updateStat(${id},'${active}','${c.key}','-')">−</button>
+                                    <button class="btn-act plus" onclick="updateStat(${id},'${active}','${c.key}','+')">+${formatHotkey(actionKeys.plus)}</button>
+                                    <button class="btn-act minus" onclick="updateStat(${id},'${active}','${c.key}','-')">−${formatHotkey(actionKeys.minus)}</button>
                                     <div class="dropdown">
                                         <button class="btn-more" onclick="toggleDropdown('${dropdownId}', event)" title="Дополнительные действия">•••</button>
                                         <div class="dropdown-menu" id="${dropdownId}">
@@ -1709,7 +2177,9 @@ function exportData() {
     document.addEventListener('visibilitychange', () => { if (document.hidden) saveToStorage(); });
 
     document.getElementById('playerNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
+    document.getElementById('playerNameInput').addEventListener('input', updatePlayerShortcutInput);
     document.getElementById('categoryNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addCategory(); });
+    document.getElementById('categoryNameInput').addEventListener('input', updateCategoryShortcutInput);
     document.getElementById('periodNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addPeriod(); });
 </script>
 </body>

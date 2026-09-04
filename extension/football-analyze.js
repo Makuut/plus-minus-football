@@ -18,7 +18,7 @@ const STORAGE_KEY = 'ttd_minimal_data';
     };
     const PLAYER_KEY_POOL = '1234567890asdfghjklzxcvbnm'.split('');
     const CATEGORY_KEY_POOL = 'qwertyuiop[]'.split('');
-    const DEFAULT_ACTION_KEYS = { plus: '+', minus: '-', removePlus: '/', removeMinus: '*' };
+    const DEFAULT_ACTION_KEYS = { plus: '+', minus: '-', removePlus: '/', removeMinus: '*', reset: '.', help: 'h' };
 
     let data = {
         players: {},
@@ -127,7 +127,6 @@ const STORAGE_KEY = 'ttd_minimal_data';
             closeConfirm();
             closeDefaultsSettings();
             closeAllDropdowns();
-            resetShortcutBuffer();
             return;
         }
         handleShortcutKey(e);
@@ -322,7 +321,9 @@ const STORAGE_KEY = 'ttd_minimal_data';
             plus: normalizeShortcutKey(settings.actionKeys?.plus || DEFAULT_ACTION_KEYS.plus),
             minus: normalizeShortcutKey(settings.actionKeys?.minus || DEFAULT_ACTION_KEYS.minus),
             removePlus: normalizeShortcutKey(settings.actionKeys?.removePlus || DEFAULT_ACTION_KEYS.removePlus),
-            removeMinus: normalizeShortcutKey(settings.actionKeys?.removeMinus || DEFAULT_ACTION_KEYS.removeMinus)
+            removeMinus: normalizeShortcutKey(settings.actionKeys?.removeMinus || DEFAULT_ACTION_KEYS.removeMinus),
+            reset: normalizeShortcutKey(settings.actionKeys?.reset || DEFAULT_ACTION_KEYS.reset),
+            help: normalizeShortcutKey(settings.actionKeys?.help || DEFAULT_ACTION_KEYS.help)
         };
     }
 
@@ -335,6 +336,8 @@ const STORAGE_KEY = 'ttd_minimal_data';
         document.getElementById('negativeKeyInput').value = actionKeys.minus;
         document.getElementById('removePositiveKeyInput').value = actionKeys.removePlus;
         document.getElementById('removeNegativeKeyInput').value = actionKeys.removeMinus;
+        document.getElementById('resetShortcutKeyInput').value = actionKeys.reset;
+        document.getElementById('helpShortcutKeyInput').value = actionKeys.help;
         document.getElementById('settingsOverlay').classList.add('active');
     }
 
@@ -350,12 +353,14 @@ const STORAGE_KEY = 'ttd_minimal_data';
             plus: normalizeShortcutKey(document.getElementById('positiveKeyInput').value) || DEFAULT_ACTION_KEYS.plus,
             minus: normalizeShortcutKey(document.getElementById('negativeKeyInput').value) || DEFAULT_ACTION_KEYS.minus,
             removePlus: normalizeShortcutKey(document.getElementById('removePositiveKeyInput').value) || DEFAULT_ACTION_KEYS.removePlus,
-            removeMinus: normalizeShortcutKey(document.getElementById('removeNegativeKeyInput').value) || DEFAULT_ACTION_KEYS.removeMinus
+            removeMinus: normalizeShortcutKey(document.getElementById('removeNegativeKeyInput').value) || DEFAULT_ACTION_KEYS.removeMinus,
+            reset: normalizeShortcutKey(document.getElementById('resetShortcutKeyInput').value) || DEFAULT_ACTION_KEYS.reset,
+            help: normalizeShortcutKey(document.getElementById('helpShortcutKeyInput').value) || DEFAULT_ACTION_KEYS.help
         };
         if (categories.length === 0) return alert('Добавьте хотя бы один показатель по умолчанию');
         if (teams.length === 0) return alert('Добавьте хотя бы одну команду по умолчанию');
         if (new Set(Object.values(actionKeys)).size !== Object.values(actionKeys).length) {
-            return alert('Клавиши действий должны отличаться друг от друга');
+            return alert('Клавиши действий, сброса и подсказки должны отличаться друг от друга');
         }
 
         saveDefaultSettings({ categories, teams, players, actionKeys });
@@ -696,7 +701,7 @@ const STORAGE_KEY = 'ttd_minimal_data';
     function setShortcutBuffer(value, context = {}) {
         shortcutBuffer = value;
         clearTimeout(shortcutTimer);
-        shortcutTimer = setTimeout(resetShortcutBuffer, 1500);
+        shortcutTimer = setTimeout(resetShortcutBuffer, 3500);
         const status = document.getElementById('shortcutStatus');
         if (!status) return;
         if (!shortcutBuffer) {
@@ -734,6 +739,12 @@ const STORAGE_KEY = 'ttd_minimal_data';
         if (!pressedKey) return;
 
         ensureShortcuts();
+
+        if (pressedKey === getActionKeys().reset && shortcutBuffer) {
+            event.preventDefault();
+            resetShortcutBuffer();
+            return;
+        }
 
         const playersByKey = {};
         for (const id in data.players) {
@@ -796,6 +807,14 @@ const STORAGE_KEY = 'ttd_minimal_data';
                     }
                     return;
                 }
+            }
+            if (categoriesByKey[pressedKey]) {
+                event.preventDefault();
+                setShortcutBuffer(shortcutBuffer[0] + pressedKey, {
+                    player: data.players[playersByKey[shortcutBuffer[0]]],
+                    category: data.categories.find(category => category.key === categoriesByKey[pressedKey])
+                });
+                return;
             }
             if (playersByKey[pressedKey]) {
                 event.preventDefault();

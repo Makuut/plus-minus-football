@@ -2,7 +2,7 @@ const STORAGE_KEY = 'ttd_minimal_data';
 const DEFAULT_SETTINGS_KEY = 'ttd_default_settings';
 const RECORDING_ENABLED_KEY = 'ttd_recording_enabled';
 
-const DEFAULT_ACTION_KEYS = { plus: '+', minus: '-', removePlus: '/', removeMinus: '*' };
+const DEFAULT_ACTION_KEYS = { plus: '+', minus: '-', removePlus: '/', removeMinus: '*', reset: '.', help: 'h' };
 
 function normalizeShortcutKey(value) {
   return String(value || '').trim().toLowerCase().slice(0, 1);
@@ -22,7 +22,9 @@ function getActionKeys(settings = {}) {
     plus: normalizeShortcutKey(settings.actionKeys?.plus || DEFAULT_ACTION_KEYS.plus),
     minus: normalizeShortcutKey(settings.actionKeys?.minus || DEFAULT_ACTION_KEYS.minus),
     removePlus: normalizeShortcutKey(settings.actionKeys?.removePlus || DEFAULT_ACTION_KEYS.removePlus),
-    removeMinus: normalizeShortcutKey(settings.actionKeys?.removeMinus || DEFAULT_ACTION_KEYS.removeMinus)
+    removeMinus: normalizeShortcutKey(settings.actionKeys?.removeMinus || DEFAULT_ACTION_KEYS.removeMinus),
+    reset: normalizeShortcutKey(settings.actionKeys?.reset || DEFAULT_ACTION_KEYS.reset),
+    help: normalizeShortcutKey(settings.actionKeys?.help || DEFAULT_ACTION_KEYS.help)
   };
 }
 
@@ -155,6 +157,18 @@ async function handleVideoShortcut(message) {
           status: `${player?.name || ''} | ${category?.label || ''} | ${actionLabel}`
         };
       }
+    }
+
+    const categoryKey = categoriesByKey[pressedKey];
+    if (categoryKey) {
+      const playerId = playersByKey[buffer[0]];
+      const category = data.categories.find((item) => item.key === categoryKey);
+      return {
+        ok: true,
+        handled: true,
+        nextBuffer: buffer[0] + pressedKey,
+        status: `${data.players[playerId]?.name || ''} | ${category?.label || ''}`
+      };
     }
 
     const playerId = playersByKey[pressedKey];
